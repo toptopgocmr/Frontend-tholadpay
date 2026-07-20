@@ -1,0 +1,20 @@
+deploy:
+    stage: deploy
+    environment:
+      name: production
+    # Pull docker image
+    image: 'mjsarfatti/gitlab-ci-pipeline-php-aws:latest'
+    # Setup AWS CLI to have proper credential keys
+    before_script:
+        - 'mkdir ~/.aws/'
+        - 'touch ~/.aws/credentials'
+        - 'printf "[eb-cli]\naws_access_key_id = %s\naws_secret_access_key = %s\n" "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY" >> ~/.aws/credentials'
+    # Run deployment using EB CLI deploy on master branch
+    script:
+        - 'git checkout main'
+        - composer update --ignore-platform-reqs
+        - echo | eb init $AWS_EB_NAME -r "us-east-1" -p "PHP"
+        - eb deploy $AWS_EB_ENVIRONMENT
+    # Ensure to run deployment only on master branch
+    only:
+        - main

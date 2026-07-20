@@ -1,0 +1,501 @@
+/* =========================================================================
+   THOLADPAY — Thème "console" (inspiré des consoles d'administration cloud)
+   Conserve la charte TholadPay (bleu #006EB6, or #ECA820, sarcelle #048b9a)
+   Sidebar/topbar sombres et denses, cartes et tableaux compacts, look "pro".
+   Chargé APRES style.css / my_style.css pour surcharger proprement.
+   ========================================================================= */
+
+:root {
+    --tp-navy: #16202c;
+    --tp-navy-light: #1f2d3d;
+    --tp-navy-border: #2a3b4d;
+    --tp-blue: #006EB6;
+    --tp-gold: #ECA820;
+    --tp-teal: #048b9a;
+    --tp-bg: #f1f3f6;
+    --tp-card-border: #e3e7ec;
+    --tp-text-muted: #8996a5;
+}
+
+body {
+    background-color: var(--tp-bg) !important;
+}
+
+/* ---------- Topbar : bandeau sombre, dense ---------- */
+.topbar {
+    background: var(--tp-navy) !important;
+    border-bottom: 1px solid var(--tp-navy-border);
+    box-shadow: none !important;
+}
+
+.topbar .topbar-left {
+    background: var(--tp-navy) !important;
+    border-right: 1px solid var(--tp-navy-border);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.topbar .topbar-left .logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    line-height: normal;
+}
+
+/* Le logo utilisé ici (tholadpay-transparent.png) a un fond réellement
+   transparent : il flotte directement sur la barre, du même noir/marine que
+   le reste de la topbar. Un seul logo affiché (le wordmark complet) : la
+   variante icône seule pour la sidebar réduite reste masquée par défaut. */
+.topbar .topbar-left .logo .logo-light {
+    display: inline-flex;
+    align-items: center;
+}
+
+.topbar .topbar-left .logo img {
+    max-height: 48px;
+    width: auto;
+    display: block;
+}
+
+/* Sidebar réduite (mode "enlarged") : même fond que la topbar. */
+.enlarged .topbar .topbar-left {
+    background: var(--tp-navy) !important;
+}
+
+.topbar .navbar-custom {
+    background: transparent !important;
+}
+
+.topbar .navbar-custom .app-search input {
+    background: var(--tp-navy-light);
+    border: 1px solid var(--tp-navy-border);
+    color: #fff;
+}
+
+.topbar .navbar-custom .app-search input::placeholder {
+    color: var(--tp-text-muted);
+}
+
+.topbar .navbar-custom .app-search button {
+    color: var(--tp-text-muted);
+}
+
+.topbar .navbar-custom .navbar-right > li > a {
+    color: #cfd8e3;
+}
+
+.topbar .navbar-custom .navbar-right > li > a:hover {
+    color: var(--tp-gold);
+}
+
+.button-menu-mobile {
+    background-color: transparent !important;
+    color: #cfd8e3 !important;
+    transition: color .15s ease;
+}
+
+.button-menu-mobile:hover,
+.button-menu-mobile:focus {
+    color: var(--tp-gold) !important;
+}
+
+/* ---------- Bloc utilisateur (topbar) : photo au-dessus, rôle en dessous ---------- */
+.topbar-user-trigger {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 14px !important;
+}
+
+.topbar-avatar {
+    width: 34px;
+    height: 34px;
+    object-fit: cover;
+    border: 2px solid var(--tp-navy-light);
+}
+
+.topbar-user-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.2;
+    text-align: center;
+}
+
+.topbar-user-name {
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.topbar-user-role {
+    color: var(--tp-gold);
+    font-size: 10px;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.topbar-user-card {
+    padding: 0.9rem 1.25rem 0.75rem;
+}
+
+.topbar-user-card-name {
+    font-weight: 700;
+    color: #1f2937;
+    font-size: 13.5px;
+}
+
+.topbar-user-card-role {
+    color: var(--tp-blue);
+    font-size: 11px;
+    letter-spacing: .4px;
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+.topbar-user-card-login {
+    color: var(--tp-text-muted);
+    font-size: 11.5px;
+    margin-top: .5rem;
+}
+
+/* ---------- Sidebar : dense, sombre, accent or sur l'item actif ---------- */
+.left.side-menu {
+    background: var(--tp-navy) !important;
+    border-right: 1px solid var(--tp-navy-border);
+}
+
+#sidebar-menu .menu-title {
+    color: var(--tp-text-muted) !important;
+    font-size: 11px;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    font-weight: 600;
+    opacity: 1;
+}
+
+#sidebar-menu > ul > li > a {
+    color: #cfd8e3 !important;
+    font-size: 13.5px;
+    padding: 10px 20px;
+    border-left: 3px solid transparent;
+}
+
+#sidebar-menu > ul > li > a i {
+    color: #7d8ea1 !important;
+    font-size: 16px;
+}
+
+#sidebar-menu > ul > li > a:hover,
+#sidebar-menu > ul > li > a:focus {
+    background: var(--tp-navy-light) !important;
+    color: #fff !important;
+}
+
+#sidebar-menu > ul > li > a:hover i {
+    color: var(--tp-gold) !important;
+}
+
+#sidebar-menu > ul > li > a.mm-active,
+#sidebar-menu > ul > li.mm-active > a {
+    background: var(--tp-navy-light) !important;
+    color: #fff !important;
+    border-left: 3px solid var(--tp-gold) !important;
+    font-weight: 600;
+}
+
+#sidebar-menu > ul > li > a.mm-active i,
+#sidebar-menu > ul > li.mm-active > a i {
+    color: var(--tp-gold) !important;
+}
+
+/* ---------- Cartes : bords nets, ombre légère (style "console") ---------- */
+.card,
+.card-box {
+    border: 1px solid var(--tp-card-border) !important;
+    border-radius: 6px !important;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06) !important;
+}
+
+.card-body {
+    padding: 1.25rem 1.4rem;
+}
+
+/* Cases du tableau de bord ("mini-stat") : on retire le motif décoratif rose
+   du thème d'origine et on applique une carte propre aux couleurs TholadPay,
+   avec un accent qui alterne bleu / sarcelle / or (comme des tuiles de service
+   d'une console cloud). */
+.card.bg-pattern {
+    background-image: none !important;
+    background-color: #fff !important;
+}
+
+.mini-stat.card,
+.mini-stat.card-box {
+    border-left: 3px solid var(--tp-blue) !important;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.mini-stat.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 24, 40, 0.10) !important;
+}
+
+.row .col-lg-4:nth-of-type(3n+2) .mini-stat.card { border-left-color: var(--tp-teal) !important; }
+.row .col-lg-4:nth-of-type(3n+3) .mini-stat.card { border-left-color: var(--tp-gold) !important; }
+
+/* On fige une hauteur et on retire l'icône du flux (position absolue) pour
+   que le titre et le chiffre s'alignent à la même hauteur d'une case à
+   l'autre, quelle que soit la longueur du libellé ("Utilisateurs" vs
+   "Agent gestionnaire partenaire" par ex.). */
+.mini-stat-img {
+    position: relative;
+    min-height: 118px;
+    padding-right: 4.75rem !important;
+}
+
+.mini-stat h6 {
+    color: var(--tp-text-muted) !important;
+    font-size: 11px;
+    letter-spacing: .5px;
+    font-weight: 700;
+    line-height: 1.35;
+    min-height: 2.7em;
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: .5rem !important;
+}
+
+.mini-stat h5,
+.mini-stat h4 {
+    font-weight: 700;
+    color: #1f2937;
+    font-size: 1.05rem;
+    margin-bottom: 0 !important;
+}
+
+/* Icône de la case : pastille circulaire aux couleurs de la marque, sortie
+   du flux normal (coin haut-droit) plutôt qu'un glyphe flottant qui pousse
+   le texte selon la longueur du titre. */
+.mini-stat-icon {
+    position: absolute;
+    top: 1.1rem;
+    right: 1.2rem;
+}
+
+.mini-stat-icon i {
+    position: static !important;
+    float: none !important;
+    background: rgba(0, 110, 182, 0.10) !important;
+    color: var(--tp-blue) !important;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px !important;
+}
+
+.row .col-lg-4:nth-of-type(3n+2) .mini-stat-icon i {
+    background: rgba(4, 139, 154, 0.12) !important;
+    color: var(--tp-teal) !important;
+}
+
+.row .col-lg-4:nth-of-type(3n+3) .mini-stat-icon i {
+    background: rgba(236, 168, 32, 0.16) !important;
+    color: #b9821a !important;
+}
+
+/* ---------- Tableaux : compacts, en-têtes sobres ---------- */
+.table thead th {
+    background: #f7f8fa;
+    color: var(--tp-text-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--tp-card-border);
+    border-top: none !important;
+}
+
+.table td, .table th {
+    padding: 0.6rem 0.85rem;
+    vertical-align: middle;
+    font-size: 13.5px;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f5f8fb;
+}
+
+/* ---------- Boutons : coins moins arrondis, plus "console" ---------- */
+.btn, .btn_round {
+    border-radius: 4px;
+}
+
+.btn-primary {
+    background-color: var(--tp-blue);
+    border-color: var(--tp-blue);
+}
+
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+    background-color: #005694 !important;
+    border-color: #005694 !important;
+}
+
+.btn-warning, .badge-warning {
+    background-color: var(--tp-gold) !important;
+    border-color: var(--tp-gold) !important;
+}
+
+/* ---------- Badges de statut ---------- */
+.badge {
+    font-weight: 600;
+    letter-spacing: .2px;
+    border-radius: 4px;
+}
+
+/* ---------- Footer ---------- */
+.footer {
+    background: transparent;
+    color: var(--tp-text-muted);
+    border-top: 1px solid var(--tp-card-border);
+}
+
+/* ---------- Page header / breadcrumb, si présent ---------- */
+.page-title-box .page-title {
+    font-weight: 700;
+    color: #1f2937;
+}
+
+/* ---------- Calendrier du tableau de bord (bootstrap-datepicker inline) ---------- */
+.right-sidebar h5.font-14 {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--tp-text-muted);
+    margin-bottom: .75rem;
+}
+
+.dashboard-date-pick {
+    background: #fff;
+    border: 1px solid var(--tp-card-border);
+    border-radius: 10px;
+    padding: 12px 8px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+}
+
+.dashboard-date-pick .datepicker-inline {
+    width: 100%;
+    padding: 0;
+}
+
+.dashboard-date-pick .datepicker {
+    width: 100%;
+    padding: 0;
+}
+
+.dashboard-date-pick .datepicker table {
+    width: 100%;
+}
+
+.dashboard-date-pick .datepicker table tr th {
+    border: none;
+    font-weight: 600;
+    color: #1f2937;
+    padding: 6px 0;
+}
+
+.dashboard-date-pick .datepicker table tr th.datepicker-switch {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+    color: #1f2937;
+    border-radius: 6px;
+}
+
+.dashboard-date-pick .datepicker table tr th.datepicker-switch:hover {
+    background: rgba(0, 110, 182, 0.08);
+    color: var(--tp-blue);
+}
+
+.dashboard-date-pick .datepicker table tr th.prev,
+.dashboard-date-pick .datepicker table tr th.next {
+    color: var(--tp-text-muted);
+    font-weight: 700;
+    border-radius: 6px;
+}
+
+.dashboard-date-pick .datepicker table tr th.prev:hover,
+.dashboard-date-pick .datepicker table tr th.next:hover {
+    background: rgba(0, 110, 182, 0.08);
+    color: var(--tp-blue);
+}
+
+.dashboard-date-pick .datepicker table tr th.dow {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+    color: var(--tp-text-muted) !important;
+    padding-bottom: 8px;
+}
+
+.dashboard-date-pick .datepicker table tr td {
+    border: none;
+    padding: 0;
+}
+
+.dashboard-date-pick .datepicker table tr td.day {
+    width: 34px;
+    height: 34px;
+    line-height: 34px;
+    border-radius: 50%;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: #374151;
+    transition: background .12s ease, color .12s ease;
+}
+
+.dashboard-date-pick .datepicker table tr td.day:hover {
+    background: rgba(0, 110, 182, 0.10) !important;
+    color: var(--tp-blue);
+}
+
+.dashboard-date-pick .datepicker table tr td.old,
+.dashboard-date-pick .datepicker table tr td.new {
+    color: #c3cad2;
+}
+
+.dashboard-date-pick .datepicker table tr td.today,
+.dashboard-date-pick .datepicker table tr td.today:hover {
+    background: rgba(236, 168, 32, 0.18) !important;
+    color: #b9821a !important;
+    font-weight: 700;
+    text-shadow: none !important;
+}
+
+.dashboard-date-pick .datepicker table tr td.active,
+.dashboard-date-pick .datepicker table tr td.active:hover,
+.dashboard-date-pick .datepicker table tr td.selected,
+.dashboard-date-pick .datepicker table tr td.selected:hover {
+    background: var(--tp-blue) !important;
+    background-image: none !important;
+    color: #fff !important;
+    font-weight: 700;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+
+.dashboard-date-pick .datepicker table tr td.disabled,
+.dashboard-date-pick .datepicker table tr td.disabled:hover {
+    color: #dde1e6;
+}
