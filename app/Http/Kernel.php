@@ -14,6 +14,11 @@ class Kernel extends HttpKernel
      * @var array
      */
     protected $middleware = [
+        // Doit tourner en premier : lit X-Forwarded-Proto envoye par le
+        // proxy Railway pour que Laravel sache que la requete est en https
+        // (sinon asset()/url() generent des liens http:// bloques en tant
+        // que "Mixed Content" par le navigateur).
+        \App\Http\Middleware\TrustProxies::class,
         \Illuminate\Foundation\Http\Middleware\CheckForMaintenanceMode::class,
     ];
 
