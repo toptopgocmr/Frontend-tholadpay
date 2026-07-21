@@ -4,7 +4,7 @@
     <meta charset="utf-8"/>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
-    <title>THOLADPAY | @yield('title')</title>
+    <title>Send-Paz | @yield('title')</title>
     <meta content="Responsive admin theme build on top of Bootstrap 4" name="description"/>
     <meta content="Themesbrand" name="author"/>
     <link rel="shortcut icon" href="{{ asset('assets/images/tholadpay.png') }}">
@@ -37,7 +37,7 @@
     <!-- content -->
 
         <footer class="footer">
-            <p>© 2026 THOLADPAY. Crafted with <i class="mdi mdi-heart text-danger"></i> by <a href="#" target="_blank">Basile NGASSAKI</a></p>
+            <p>© 2026 Send-Paz. Crafted with <i class="mdi mdi-heart text-danger"></i> by <a href="#" target="_blank">Basile NGASSAKI</a></p>
         </footer>
     </div>
     <!-- ============================================================== -->

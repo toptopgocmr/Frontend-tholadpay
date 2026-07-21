@@ -46,7 +46,7 @@
                         <div class="card-body">
                             <h4 class="mt-0 header-title">Listing</h4>
                             <p class="text-muted mb-4">
-                                Liste de toutes les zones où THOLADPAY op&egrave;re.
+                                Liste de toutes les zones où Send-Paz op&egrave;re.
                             </p>
                             @if ($message = Session::get('success'))
                                 <div class="alert alert-success alert-block">

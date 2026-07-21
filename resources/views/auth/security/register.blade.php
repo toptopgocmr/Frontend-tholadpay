@@ -72,7 +72,7 @@
                 </div>
             </div>
             <div class="mt-5 text-center text-white-50">
-                <p>© 2026 THOLADPAY. Crafted with <i class="mdi mdi-heart text-danger"></i> by <a href="#">Basile NGASSAKI</a>
+                <p>© 2026 Send-Paz. Crafted with <i class="mdi mdi-heart text-danger"></i> by <a href="#">Basile NGASSAKI</a>
                 </p>
             </div>
 

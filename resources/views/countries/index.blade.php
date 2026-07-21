@@ -47,7 +47,7 @@
                         <div class="card-body">
                             <h4 class="mt-0 header-title">Listing</h4>
                             <p class="text-muted mb-4">
-                                Liste de tous les pays où THOLADPAY est succeptible d'opéré les oprérations de transfert
+                                Liste de tous les pays où Send-Paz est succeptible d'opéré les oprérations de transfert
                                 d'argent.
                             </p>
                             @if ($message = Session::get('success'))

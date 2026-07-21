@@ -8,7 +8,7 @@
                     <div class="text-center auth-vertical-header">
                         <img src="{{asset('assets/images/tholadpay-transparent.png')}}" alt="logo" class="auth-vertical-logo">
                         <h4 class="auth-vertical-title">Bienvenue à bord !</h4>
-                        <p class="auth-vertical-text">Identifiez-vous pour démarrer l’expérience sur la plateforme THOLADPAY.</p>
+                        <p class="auth-vertical-text">Identifiez-vous pour démarrer l’expérience sur la plateforme Send-Paz.</p>
                     </div>
 
                     @if ($message = Session::get('success'))
@@ -66,7 +66,7 @@
                 </div>
             </div>
             <div class="mt-4 text-center text-white-50">
-                <p>© 2026 THOLADPAY. Crafted with <i class="mdi mdi-heart text-danger"></i> by <a href="#">Basile NGASSAKI</a>
+                <p>© 2026 Send-Paz. Crafted with <i class="mdi mdi-heart text-danger"></i> by <a href="#">Basile NGASSAKI</a>
                 </p>
             </div>
         </div>

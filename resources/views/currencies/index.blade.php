@@ -53,7 +53,7 @@
                         <div class="card-body">
                             <h4 class="mt-0 header-title">Listing</h4>
                             <p class="text-muted mb-4">
-                                Liste de tous les taux de change THOLADPAY a partir du Congo
+                                Liste de tous les taux de change Send-Paz a partir du Congo
                             </p>
                             @if ($message = Session::get('success'))
                                 <div class="alert alert-success alert-block">
