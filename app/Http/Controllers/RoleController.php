@@ -137,12 +137,7 @@ class RoleController extends Controller
                 $res = json_decode($res->getBody()->getContents(), true);
                 return redirect()->route('role_list')->with('success', 'Le role a été modifié avec succès.');
             } catch (\Exception $e) {
-                // FIX (2026-07-04, audit code) : dump() brut remplacé par l'extraction du vrai message.
-                $erreurM = $e->getMessage();
-                if ($e instanceof RequestException && $e->hasResponse()) {
-                    $body = json_decode($e->getResponse()->getBody()->getContents(), true);
-                    $erreurM = $body['message'] ?? $erreurM;
-                }
+                $erreurM = $this->extractErrorMessage($e, 'Une erreur est survenue lors de la modification. Veuillez réessayer.');
                 \Session::flash('error', 'Erreur lors de la modification : ' . $erreurM);
             }
         }

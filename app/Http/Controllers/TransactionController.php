@@ -909,15 +909,7 @@ class TransactionController extends Controller
                                 return redirect()->route('transaction_quote', $transaction['id'])->with('error', 'Erreur : ' . $erreurM);
                             }
                         } catch (\Exception $e) {
-                            // FIX (nettoyage TerraPay -> Peex) : idem — plus de dump() brut,
-                            // on extrait le vrai message d'erreur Peex et on redirige proprement.
-                            $erreurM = 'Erreur inconnue lors de la cotation.';
-                            if ($e instanceof RequestException && $e->hasResponse()) {
-                                $body = json_decode($e->getResponse()->getBody()->getContents(), true);
-                                $erreurM = $body['message'] ?? $erreurM;
-                            } else {
-                                $erreurM = $e->getMessage();
-                            }
+                            $erreurM = $this->extractErrorMessage($e, 'Erreur inconnue lors de la cotation.');
                             return redirect()->route('transaction_quote', $transaction['id'])->with('error', 'Erreur : ' . $erreurM);
                         }
                     }
@@ -1159,18 +1151,7 @@ class TransactionController extends Controller
                                 return redirect()->route('transaction_transac', $transaction['id'])->with('error', 'Erreur : ' . $manage);
                             }
                         } catch (\Exception $e) {
-                            // FIX (nettoyage TerraPay -> Peex) : ce catch se contentait de dump()
-                            // le message brut de l'exception Guzzle (ex : 422 de Peex), laissant
-                            // la page dans un état incohérent. On extrait maintenant le message
-                            // réel renvoyé par Peex (via le corps de la réponse) et on redirige
-                            // avec un message d'erreur exploitable, comme les autres branches.
-                            $manage = 'Erreur inconnue lors de l\'envoi de la transaction.';
-                            if ($e instanceof RequestException && $e->hasResponse()) {
-                                $body = json_decode($e->getResponse()->getBody()->getContents(), true);
-                                $manage = $body['message'] ?? $manage;
-                            } else {
-                                $manage = $e->getMessage();
-                            }
+                            $manage = $this->extractErrorMessage($e, 'Erreur inconnue lors de l\'envoi de la transaction.');
                             return redirect()->route('transaction_transac', $transaction['id'])->with('error', 'Erreur : ' . $manage);
                         }
                     }

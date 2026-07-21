@@ -326,12 +326,7 @@ class UserController extends Controller
                     }
                 }
             } catch (\Exception $e) {
-                // FIX (2026-07-04, audit code) : dump() brut remplacé par l'extraction du vrai message.
-                $erreurM = $e->getMessage();
-                if ($e instanceof RequestException && $e->hasResponse()) {
-                    $body = json_decode($e->getResponse()->getBody()->getContents(), true);
-                    $erreurM = $body['message'] ?? $erreurM;
-                }
+                $erreurM = $this->extractErrorMessage($e, 'Une erreur est survenue lors de l\'enregistrement. Veuillez réessayer.');
                 \Session::flash('error', 'Erreur lors de l\'enregistrement : ' . $erreurM);
             }
         }
@@ -543,12 +538,7 @@ class UserController extends Controller
                     }
                 }
             } catch (\Exception $e) {
-                // FIX (2026-07-04, audit code) : dump() brut remplacé par l'extraction du vrai message.
-                $erreurM = $e->getMessage();
-                if ($e instanceof RequestException && $e->hasResponse()) {
-                    $body = json_decode($e->getResponse()->getBody()->getContents(), true);
-                    $erreurM = $body['message'] ?? $erreurM;
-                }
+                $erreurM = $this->extractErrorMessage($e, 'Une erreur est survenue lors de la modification. Veuillez réessayer.');
                 \Session::flash('error', 'Erreur lors de la modification : ' . $erreurM);
             }
         }
