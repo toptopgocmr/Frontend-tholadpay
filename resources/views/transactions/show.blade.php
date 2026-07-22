@@ -146,7 +146,7 @@
                                                 </tr>
                                             @endif
                                         @endif
-                                        @if (in_array($transaction['etat_transac'], ['acknowledged', 'success']))
+                                        @if (in_array($transaction['etat_transac'], ['acknowledged', 'success', 'failed', 'cancelled']))
                                             <tr>
                                                 <th colspan="2">
                                                     <a href="{{ route('transaction_receipt', $transaction['id']) }}" target="_blank"

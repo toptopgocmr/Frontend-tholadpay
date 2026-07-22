@@ -48,6 +48,8 @@
         }
         .status-badge.success { background: #e5f6ea; color: #1e8a3c; }
         .status-badge.acknowledged { background: #fff3d6; color: #b9790a; }
+        .status-badge.failed { background: #fde8e8; color: #c0392b; }
+        .status-badge.cancelled { background: #ececec; color: #666; }
         .section-title {
             font-size: 13px;
             text-transform: uppercase;
@@ -84,6 +86,16 @@
         .amount-box .total td.value {
             color: #12709E;
             font-size: 17px;
+        }
+        .rejected-notice {
+            margin-top: 14px;
+            padding: 10px 14px;
+            background: #fdf2f2;
+            border: 1px solid #f5c6c6;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #922b21;
+            text-align: center;
         }
         .receipt-footer {
             text-align: center;
@@ -130,10 +142,24 @@
         <div class="receipt-header">
             <img src="{{ asset('assets/images/tholadpay-transparent.png') }}" alt="Send-Paz">
             <h1>Reçu de transaction</h1>
-            <span class="status-badge {{ $etat === 'success' ? 'success' : 'acknowledged' }}">
-                {{ $etat === 'success' ? 'Paiement réussi' : 'Paiement en attente' }}
+            @php
+                $statusLabels = [
+                    'success' => 'Paiement réussi',
+                    'acknowledged' => 'Paiement en attente',
+                    'failed' => 'Transaction rejetée',
+                    'cancelled' => 'Transaction annulée',
+                ];
+                $statusClass = in_array($etat, array_keys($statusLabels)) ? $etat : 'acknowledged';
+            @endphp
+            <span class="status-badge {{ $statusClass }}">
+                {{ $statusLabels[$statusClass] ?? 'Statut inconnu' }}
             </span>
         </div>
+        @if(in_array($etat, ['failed', 'cancelled']))
+            <div class="rejected-notice">
+                Ce reçu atteste qu'aucun montant n'a été livré au bénéficiaire pour cette transaction. Les fonds débités, le cas échéant, font l'objet d'un remboursement selon la procédure en vigueur.
+            </div>
+        @endif
 
         <table class="info">
             <tr><td class="label">Numéro de transaction</td><td class="value">{{ $transaction['ranking'] ?? '—' }}</td></tr>

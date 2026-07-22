@@ -603,13 +603,14 @@ class TransactionController extends Controller
             return redirect()->route('transaction_list')->with('error', 'Transaction introuvable.');
         }
 
-        // Le reçu n'a de sens que si le paiement est en attente (acknowledged) ou
-        // réussi (success) — voir demande utilisateur. Pour tout autre état
-        // (New/failed/...), on renvoie vers le détail plutôt que d'imprimer un
-        // reçu pour une transaction non payée.
+        // Le reçu est disponible pour : en attente (acknowledged), réussie (success),
+        // rejetée/échouée (failed) ou annulée (cancelled) — cf. demande utilisateur
+        // du 2026-07-22 d'avoir un reçu justificatif même pour les transactions
+        // rejetées par Peex (statut "REJECTED" côté API -> etat_transac = failed).
+        // Seul un état "New" (jamais soumise) reste sans reçu, faute d'info exploitable.
         $etat = $transaction['etat_transac'] ?? null;
-        if (!in_array($etat, ['acknowledged', 'success'])) {
-            return redirect()->route('transaction_show', $id)->with('error', 'Le reçu n\'est disponible que pour une transaction en attente ou réussie.');
+        if (!in_array($etat, ['acknowledged', 'success', 'failed', 'cancelled'])) {
+            return redirect()->route('transaction_show', $id)->with('error', 'Le reçu n\'est pas disponible pour cette transaction.');
         }
 
         return view('transactions.receipt', compact('transaction', 'etat'));
