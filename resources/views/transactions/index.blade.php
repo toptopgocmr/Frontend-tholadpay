@@ -23,12 +23,18 @@
 
     <!-- Javascript -->
     <script>
+        // FIX (2026-07-22) : "10w+1" n'est pas une syntaxe relative valide pour
+        // bootstrap-datepicker (il manque le signe sur "10w" et l'unité sur "+1"),
+        // donc le plugin ne pouvait pas la parser et retombait sur la date du jour
+        // à CHAQUE chargement de page — y compris juste après une recherche par
+        // date, écrasant visuellement la plage choisie par l'agent alors que le
+        // filtre côté serveur (TransactionController::search()) fonctionnait déjà
+        // correctement. Les champs sont maintenant pré-remplis côté serveur (voir
+        // value="{{ $date_start->format('m/d/Y') }}" / "{{ $date->format('m/d/Y') }}"
+        // ci-dessous) ; on initialise juste le widget sans forcer de date.
         $(function () {
             $("#datepicker-12").datepicker();
-            $("#datepicker-12").datepicker("setDate", "10w+1");
-
             $("#datepicker-13").datepicker();
-            $("#datepicker-13").datepicker("setDate", "10w+1");
         });
     </script>
 @stop
@@ -86,13 +92,13 @@
                                     </div>
                                     <div class="col-2">
                                         <div style="margin: auto; margin-right: 20px; " class="input-group">
-                                            <input type="text" id="datepicker-13" name="search_start">                                            
+                                            <input type="text" id="datepicker-13" name="search_start" value="{{ $date_start->format('m/d/Y') }}">
                                         </div>
                                     </div>
-                                    <div class="col-2">                                        
+                                    <div class="col-2">
                                         <div style="margin: auto;" class="input-group">
-                                            <input type="text" id="datepicker-12" name="search_trs">                                            
-                                        </div><!-- input-group -->                                        
+                                            <input type="text" id="datepicker-12" name="search_trs" value="{{ $date->format('m/d/Y') }}">
+                                        </div><!-- input-group -->
                                     </div>
                                     <div class="col-3">
                                         <div class="input-group-append">
