@@ -31,6 +31,7 @@ Route::match(array('GET','POST'), 'admin/transactions/ajouter', [ 'middleware' =
 Route::match(array('GET','POST'), 'admin/transactions/search', [ 'middleware' => ['all', 'cors'], 'uses' => 'TransactionController@search', 'as' => 'transaction_search' ]);
 Route::get('admin/transactions/{id}', [ 'middleware' => ['all', 'cors'], 'uses' => 'TransactionController@show', 'as' => 'transaction_show' ]);
 Route::get('admin/transactions/{id}/trace', [ 'middleware' => ['all', 'cors'], 'uses' => 'TransactionController@showTraceFullTransaction', 'as' => 'transaction_trace' ]);
+Route::get('admin/transactions/{id}/receipt', [ 'middleware' => ['all', 'cors'], 'uses' => 'TransactionController@receipt', 'as' => 'transaction_receipt' ]);
 Route::match(array('GET','POST'), 'admin/transactions/{id}/validation', [ 'middleware' => ['all', 'cors'], 'uses' => 'TransactionController@update', 'as' => 'transaction_valid' ]);
 Route::match(array('GET','POST'), 'admin/transactions/{id}/quotation', [ 'middleware' => ['all', 'cors'], 'uses' => 'TransactionController@getquotation', 'as' => 'transaction_quote' ]);
 Route::match(array('GET','POST'), 'admin/transactions/{id}/sendtransaction', [ 'middleware' => ['all', 'cors'], 'uses' => 'TransactionController@sendtransaction', 'as' => 'transaction_transac' ]);

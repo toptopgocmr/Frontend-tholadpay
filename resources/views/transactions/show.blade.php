@@ -146,7 +146,17 @@
                                                 </tr>
                                             @endif
                                         @endif
-                                        @if ($transaction['transaction_status'] === 'approuved' && $transaction['etat_transac'] === 'success' && $transaction['reference'] !== null) 
+                                        @if (in_array($transaction['etat_transac'], ['acknowledged', 'success']))
+                                            <tr>
+                                                <th colspan="2">
+                                                    <a href="{{ route('transaction_receipt', $transaction['id']) }}" target="_blank"
+                                                       class="btn btn-outline-primary btn-rounded waves-effect">
+                                                        <i class="mdi mdi-printer mr-2"></i> Imprimer le reçu
+                                                    </a>
+                                                </th>
+                                            </tr>
+                                        @endif
+                                        @if ($transaction['transaction_status'] === 'approuved' && $transaction['etat_transac'] === 'success' && $transaction['reference'] !== null)
                                             <tr>
                                                 <th colspan="2" style="text-align: right">
                                                     <a href="{{ route('transaction_trace', $transaction['id']) }}">

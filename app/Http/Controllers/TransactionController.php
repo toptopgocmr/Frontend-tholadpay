@@ -565,6 +565,56 @@ class TransactionController extends Controller
         return view('transactions.show', compact('token', 'role', 'user', 'menu', 'transaction', 'date', 'day'));
     }
 
+    /**
+     * Reçu imprimable d'une transaction (pending/success uniquement — voir garde
+     * ci-dessous). Vue autonome (pas de layout admin) avec impression automatique,
+     * ouverte dans un nouvel onglet depuis le bouton "Imprimer le reçu" de
+     * transactions.show. Même périmètre d'accès que show() ci-dessus.
+     */
+    public function receipt(Request $request, $id)
+    {
+        $token = $request->session()->get('token');
+        $role = $request->session()->get('role');
+        $agent = $request->session()->get('agent');
+        $transaction = null;
+        try {
+            $client = new Client();
+            $response = $client->get(config('keys.url_api') . 'transactions/' . $id . '?_includes=sender,agent,sender.user,user,user.agent,outbound.bank,outbound.mobile', [
+                'verify' => false,
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Authorization' => 'Bearer ' . $token
+                ]
+            ]);
+            $transaction = json_decode($response->getBody()->getContents(), true);
+
+            $fullAccessRoles = ['administrator', 'csa', 'finance_manager', 'technical_support'];
+            if (!in_array($role, $fullAccessRoles)) {
+                $agentScope = $agent;
+                if ($agentScope !== null && isset($agentScope['agent']) && $agentScope['agent'] !== null) {
+                    $agentScope = $agentScope['agent'];
+                }
+                $agentId = $agentScope['id'] ?? null;
+                if ($agentId === null || (string) ($transaction['agent_id'] ?? '') !== (string) $agentId) {
+                    return redirect()->route('logout')->with('error', 'Vous n\'avez pas accès à cette page.');
+                }
+            }
+        } catch (\Exception $e) {
+            return redirect()->route('transaction_list')->with('error', 'Transaction introuvable.');
+        }
+
+        // Le reçu n'a de sens que si le paiement est en attente (acknowledged) ou
+        // réussi (success) — voir demande utilisateur. Pour tout autre état
+        // (New/failed/...), on renvoie vers le détail plutôt que d'imprimer un
+        // reçu pour une transaction non payée.
+        $etat = $transaction['etat_transac'] ?? null;
+        if (!in_array($etat, ['acknowledged', 'success'])) {
+            return redirect()->route('transaction_show', $id)->with('error', 'Le reçu n\'est disponible que pour une transaction en attente ou réussie.');
+        }
+
+        return view('transactions.receipt', compact('transaction', 'etat'));
+    }
+
     public function update(Request $request, $id)
     {
         $day = new \DateTime();
