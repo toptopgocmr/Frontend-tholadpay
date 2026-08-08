@@ -48,6 +48,15 @@ class AdminController extends Controller
         $peexSolde = null;
         $peexActive = null;
         $finances = array();
+        // AJOUT (2026-08-08) : "transactions entrantes" — montant total que cet
+        // agent (ou, pour l'admin/finance_manager, TOUS les agents) a versé aux
+        // bénéficiaires en payant des retraits internes (voir InternalTransferController::
+        // payout_internal_transaction, qui crédite le solde de l'agent payeur du
+        // montant décaissé). Distinct de $revenues (argent ENVOYÉ par cet agent en
+        // tant qu'expéditeur) : ici c'est l'argent REÇU/décaissé en tant que
+        // guichet payeur pour un envoi initié ailleurs dans le réseau.
+        $totalEntrant = 0;
+        $nbEntrant = 0;
         // if($agent !== null)
         // $agent['solde'] = number_format(floatval($agent['solde'].''), 2);
         if ($role === 'administrator' || $role === 'csa' || $role === 'finance_manager') {
@@ -178,6 +187,29 @@ class AdminController extends Controller
                 $peexSolde = null;
                 $peexActive = null;
             }
+
+            // AJOUT (2026-08-08) : total réseau des transactions entrantes (tous
+            // agents payeurs confondus) — voir commentaire sur $totalEntrant plus haut.
+            try {
+                $inbounds = $client->get(config('keys.url_api') . 'inbounds?_includes=transaction&per_page=30000000', [
+                    'verify' => false,
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                        'Authorization' => 'Bearer ' . $token
+                    ]
+                ]);
+                $inbounds = json_decode($inbounds->getBody()->getContents(), true)['data'];
+                foreach ($inbounds as $in) {
+                    if ($in['transaction'] !== null) {
+                        $totalEntrant += floatval($in['transaction']['montant_beneficiaire'] ?? 0);
+                        $nbEntrant += 1;
+                    }
+                }
+                $totalEntrant = number_format(floatval($totalEntrant . ''), 2);
+            } catch (\Exception $e) {
+                $totalEntrant = 0;
+                $nbEntrant = 0;
+            }
         }
         // dd($agent);
         if ($role === 'agent' || $role === 'cashier' || $role === 'technical_support') {
@@ -264,8 +296,34 @@ class AdminController extends Controller
             $transCancel = count($transaCancel);
             $customers = array_unique($myCustomers, SORT_REGULAR); // cette fonction permet de retirer les doublons du tableau
             $nbreCustomers = count($customers);
+
+            // AJOUT (2026-08-08) : transactions entrantes pour CET agent — voir
+            // commentaire sur $totalEntrant plus haut. Sans objet pour technical_support
+            // (pas de compte agent propre, $agent est null dans ce cas).
+            if ($agent !== null) {
+                try {
+                    $inbounds = $client->get(config('keys.url_api') . 'inbounds?paying_agent_id=' . $agent['id'] . '&_includes=transaction&per_page=30000000', [
+                        'verify' => false,
+                        'headers' => [
+                            'Content-Type' => 'application/json',
+                            'Authorization' => 'Bearer ' . $token
+                        ]
+                    ]);
+                    $inbounds = json_decode($inbounds->getBody()->getContents(), true)['data'];
+                    foreach ($inbounds as $in) {
+                        if ($in['transaction'] !== null) {
+                            $totalEntrant += floatval($in['transaction']['montant_beneficiaire'] ?? 0);
+                            $nbEntrant += 1;
+                        }
+                    }
+                    $totalEntrant = number_format(floatval($totalEntrant . ''), 2);
+                } catch (\Exception $e) {
+                    $totalEntrant = 0;
+                    $nbEntrant = 0;
+                }
+            }
         }
         // dump($user);
-        return view('home', compact('token', 'role', 'user', 'menu', 'admins', 'agents', 'cashiers', 'trans', 'moy', 'revenues', 'transCancel', 'transactions', 'agent', 'fraisEnvoi', 'transAttente', 'transEchec', 'montantTotal', 'prefundValid', 'prefundAnnul', 'prefundEchec', 'nbreCustomers', 'nbreFinances', 'totalSoldesDisponible', 'peexSolde', 'peexActive'));
+        return view('home', compact('token', 'role', 'user', 'menu', 'admins', 'agents', 'cashiers', 'trans', 'moy', 'revenues', 'transCancel', 'transactions', 'agent', 'fraisEnvoi', 'transAttente', 'transEchec', 'montantTotal', 'prefundValid', 'prefundAnnul', 'prefundEchec', 'nbreCustomers', 'nbreFinances', 'totalSoldesDisponible', 'peexSolde', 'peexActive', 'totalEntrant', 'nbEntrant'));
     }
 }

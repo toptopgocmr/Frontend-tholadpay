@@ -80,7 +80,20 @@
                                 <h5 class="mb-3">{{$fraisEnvoi}} XAF</h5>
                             </div>
                         </div>
-                    </div>                    
+                    </div>
+                    <!-- AJOUT (2026-08-08) : total réseau des transactions entrantes (tous
+                         agents payeurs de retraits internes confondus) — voir AdminController. -->
+                    <div class="col-lg-4">
+                        <div class="card mini-stat bg-pattern">
+                            <div class="card-body mini-stat-img">
+                                <div class="mini-stat-icon">
+                                    <i class="dripicons-wallet bg-soft-primary text-primary float-right h4"></i>
+                                </div>
+                                <h6 class="text-uppercase mb-3 mt-0">Transactions entrantes (montant reçu)</h6>
+                                <h5 class="mb-3">{{$totalEntrant}} XAF</h5>
+                            </div>
+                        </div>
+                    </div>
                     <div class="col-lg-4">
                         <div class="card mini-stat bg-pattern">
                             <div class="card-body mini-stat-img">
@@ -296,6 +309,32 @@
                                 </div>
                                 <h6 class="text-uppercase mb-3 mt-0">Total des frais</h6>
                                 <h5 class="mb-3">{{$fraisEnvoi}} XAF</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- AJOUT (2026-08-08) : montant total versé aux bénéficiaires en tant
+                         qu'agent PAYEUR de transferts internes (voir InternalTransferController::
+                         payout_internal_transaction) — distinct de "Total montant envoyé" (argent
+                         envoyé en tant qu'EXPÉDITEUR). -->
+                    <div class="col-lg-4">
+                        <div class="card mini-stat bg-pattern">
+                            <div class="card-body mini-stat-img">
+                                <div class="mini-stat-icon">
+                                    <i class="dripicons-wallet bg-soft-primary text-primary float-right h4"></i>
+                                </div>
+                                <h6 class="text-uppercase mb-3 mt-0">Transactions entrantes (montant reçu)</h6>
+                                <h5 class="mb-3">{{$totalEntrant}} XAF</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="card mini-stat bg-pattern">
+                            <div class="card-body mini-stat-img">
+                                <div class="mini-stat-icon">
+                                    <i class="dripicons-wallet bg-soft-primary text-primary float-right h4"></i>
+                                </div>
+                                <h6 class="text-uppercase mb-3 mt-0">Nombre transactions entrantes</h6>
+                                <h5 class="mb-3">{{$nbEntrant}}</h5>
                             </div>
                         </div>
                     </div>
