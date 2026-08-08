@@ -80,6 +80,7 @@
                                         <table class="table table-sm table-hover">
                                             <thead>
                                                 <tr>
+                                                    <th>Statut</th>
                                                     <th>Référence</th>
                                                     <th>Bénéficiaire</th>
                                                     <th>Montant</th>
@@ -92,11 +93,12 @@
                                             <tbody>
                                                 @foreach ($pendingList as $tx)
                                                     <tr>
+                                                        <td><span class="badge badge-info">Consulté par le bénéficiaire</span></td>
                                                         <td><strong>{{ $tx['ranking'] ?? '—' }}</strong></td>
                                                         <td>{{ strtoupper($tx['recipient_first_name'] ?? '') }} {{ ucwords($tx['recipient_last_name'] ?? '') }}</td>
                                                         <td>{{ number_format($tx['montant_beneficiaire'] ?? 0, 0, ',', ' ') }} {{ $tx['to_currency'] ?? '' }}</td>
                                                         <td>{{ $tx['receiving_country'] ?? '—' }}</td>
-                                                        <td>{{ $tx['user']['first_name'] ?? '' }} {{ $tx['user']['last_name'] ?? '' }} <span class="text-muted">({{ $tx['agent']['nom_commercial'] ?? '—' }}, {{ $tx['agent']['country']['name'] ?? '—' }})</span></td>
+                                                        <td>{{ $tx['user']['first_name'] ?? '' }} {{ $tx['user']['last_name'] ?? '' }} <span class="text-muted">({{ $tx['user']['phone_number'] ?? '—' }} — {{ $tx['agent']['nom_commercial'] ?? '—' }}, {{ $tx['agent']['country']['name'] ?? '—' }})</span></td>
                                                         <td>{{ !empty($tx['beneficiary_checked_in_at']) ? \Carbon\Carbon::parse($tx['beneficiary_checked_in_at'])->format('d/m/Y H:i') : '—' }}</td>
                                                         <td>
                                                             <form action="{{ route('internal_payout') }}" method="post" class="d-inline quick-verify-form">
@@ -215,6 +217,45 @@
                                                 Confirmer le paiement
                                             </button>
                                             <a href="{{ route('internal_payout') }}" class="btn btn-secondary btn-rounded waves-effect">Annuler</a>
+                                        </div>
+                                    </form>
+
+                                    {{-- AJOUT (2026-08-08) : rejet du retrait (bénéficiaire non conforme, pièce
+                                         d'identité invalide, ou autre motif) — demande utilisateur du 2026-08-08.
+                                         Voir InternalTransferController::reject_internal_transaction. Aucun montant
+                                         n'est déplacé automatiquement : le rejet marque juste la transaction. --}}
+                                    <hr>
+                                    <h6 class="text-muted">Ou rejeter ce retrait</h6>
+                                    <form action="{{ route('internal_payout') }}" method="post" class="form-horizontal">
+                                        {{ csrf_field() }}
+                                        <input type="hidden" name="reject" value="1">
+                                        <input type="hidden" name="pickup_code" value="{{ $pickupCode }}">
+                                        @if ($needsAgentPicker)
+                                            <input type="hidden" name="payer_agent_id" value="{{ $payerAgentId }}">
+                                        @endif
+                                        <div class="form-group row">
+                                            <label for="rejection_reason" class="col-2 col-form-label">Motif du rejet <i class="red">*</i></label>
+                                            <div class="col-4">
+                                                <select class="form-control" name="rejection_reason" id="rejection_reason" required>
+                                                    <option value="">— Sélectionner —</option>
+                                                    <option value="name_mismatch">Nom du bénéficiaire non conforme</option>
+                                                    <option value="invalid_id">Pièce d'identité invalide ou non conforme</option>
+                                                    <option value="other">Autre motif</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-group row">
+                                            <label for="rejection_note" class="col-2 col-form-label">Précisions</label>
+                                            <div class="col-4">
+                                                <textarea class="form-control" name="rejection_note" id="rejection_note" rows="2" placeholder="Facultatif, sauf si 'Autre motif'"></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="button-items" dir="ltr">
+                                            <button type="submit" class="btn btn-danger btn-icon btn-rounded waves-effect"
+                                                    onclick="return confirm('Confirmer le rejet de ce retrait ?');">
+                                                <span class="btn-icon-label"><i class="mdi mdi-close-circle mr-2"></i></span>
+                                                Rejeter le retrait
+                                            </button>
                                         </div>
                                     </form>
                                 @endif

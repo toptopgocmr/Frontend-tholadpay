@@ -1988,6 +1988,39 @@ class TransactionController extends Controller
                 return redirect()->route('internal_payout')->with('error', 'Veuillez sélectionner l\'agence qui encaisse.');
             }
 
+            if ($request->get('reject') === '1') {
+                // AJOUT (2026-08-08) : rejet du retrait (bénéficiaire non conforme,
+                // pièce d'identité invalide, ou autre motif) — voir
+                // InternalTransferController::reject_internal_transaction.
+                $reason = $request->get('rejection_reason');
+                if (!$reason) {
+                    return redirect()->route('internal_payout')->with('error', 'Veuillez sélectionner un motif de rejet.');
+                }
+                try {
+                    $res = $client->post(config('keys.url_api') . 'reject_internal_transaction', [
+                        'verify' => false,
+                        'headers' => [
+                            'Content-Type' => 'application/json',
+                            'Authorization' => 'Bearer ' . $token
+                        ],
+                        'json' => [
+                            'pickup_code' => $pickupCode,
+                            'agent_id' => $payerAgentId,
+                            'rejection_reason' => $reason,
+                            'rejection_note' => $request->get('rejection_note'),
+                        ]
+                    ]);
+                    $body = json_decode($res->getBody()->getContents(), true);
+                    return redirect()->route('internal_payout')->with('warning',
+                        'Transaction ' . ($body['ranking'] ?? '') . ' rejetée.');
+                } catch (ClientException $e) {
+                    $body = json_decode($e->getResponse()->getBody()->getContents(), true);
+                    return redirect()->route('internal_payout')->with('error', $body['message'] ?? 'Erreur lors du rejet.');
+                } catch (\Exception $e) {
+                    return redirect()->route('internal_payout')->with('error', 'Erreur inattendue lors du rejet.');
+                }
+            }
+
             if ($request->get('confirm') === '1') {
                 // Étape 2 : confirmation du paiement.
                 try {
