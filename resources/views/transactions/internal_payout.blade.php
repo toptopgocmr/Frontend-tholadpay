@@ -57,6 +57,24 @@
                                 <p class="text-muted">Saisissez le code communiqué par le bénéficiaire (format XXXX-XXXX).</p>
                                 <form action="{{ route('internal_payout') }}" method="post" class="form-horizontal">
                                     {{ csrf_field() }}
+                                    {{-- AJOUT (2026-08-08) : un administrateur/finance_manager/technical_support
+                                         n'a pas d'agence propre — il doit choisir laquelle encaisse, sinon
+                                         payout_internal_transaction refuse (agent_id manquant). --}}
+                                    @if ($needsAgentPicker)
+                                        <div class="form-group row">
+                                            <label for="payer_agent_id" class="col-2 col-form-label">Agence qui encaisse <i class="red">*</i></label>
+                                            <div class="col-4">
+                                                <select class="form-control" name="payer_agent_id" id="payer_agent_id" required>
+                                                    <option value="">— Sélectionner —</option>
+                                                    @foreach ($agentsList as $agt)
+                                                        <option value="{{ $agt['id'] }}" {{ (string) $payerAgentId === (string) $agt['id'] ? 'selected' : '' }}>
+                                                            {{ ($agt['user']['full_name'] ?? '') . ' [' . ($agt['nom_commercial'] ?? '') . ']' }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
+                                    @endif
                                     <div class="form-group row">
                                         <label for="pickup_code" class="col-2 col-form-label">Code de retrait <i class="red">*</i></label>
                                         <div class="col-4">
@@ -91,6 +109,9 @@
                                         {{ csrf_field() }}
                                         <input type="hidden" name="confirm" value="1">
                                         <input type="hidden" name="pickup_code" value="{{ $pickupCode }}">
+                                        @if ($needsAgentPicker)
+                                            <input type="hidden" name="payer_agent_id" value="{{ $payerAgentId }}">
+                                        @endif
                                         <div class="form-group row">
                                             <label for="payout_id_type" class="col-2 col-form-label">Type de pièce</label>
                                             <div class="col-4">

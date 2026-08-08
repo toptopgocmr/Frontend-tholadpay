@@ -1921,13 +1921,43 @@ class TransactionController extends Controller
             $agent = $agent['agent'];
         }
 
+        // FIX (2026-08-08) : un administrateur/finance_manager/technical_support
+        // n'a AUCUN compte agent en session ($agent === null ici) — jusqu'ici le
+        // formulaire envoyait quand même agent_id=null à l'API, qui refusait avec
+        // "pickup_code, agent_id et payout_id_number sont requis" (payout_internal_
+        // transaction exige les 3). On laisse donc ces rôles CHOISIR quelle agence
+        // encaisse, via un sélecteur alimenté par la liste des agences (is_partner=1).
+        // Pour un agent/cashier déjà lié à une agence, ce sélecteur ne s'affiche pas :
+        // $payerAgentId reste simplement $agent['id'], comportement inchangé.
+        $needsAgentPicker = $agent === null;
+        $agentsList = [];
+        $client = new Client();
+        if ($needsAgentPicker) {
+            try {
+                $res = $client->get(config('keys.url_api') . 'agents?_includes=user&is_partner=1&per_page=500', [
+                    'verify' => false,
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                        'Authorization' => 'Bearer ' . $token
+                    ]
+                ]);
+                $agentsList = json_decode($res->getBody()->getContents(), true)['data'] ?? [];
+            } catch (\Exception $e) {
+                $agentsList = [];
+            }
+        }
+        $payerAgentId = $agent['id'] ?? $request->get('payer_agent_id');
+
         $step = 'lookup';
         $lookup = null;
         $pickupCode = null;
 
         if ($request->getMethod() === 'POST') {
-            $client = new Client();
             $pickupCode = strtoupper(trim((string) $request->get('pickup_code')));
+
+            if ($needsAgentPicker && !$payerAgentId) {
+                return redirect()->route('internal_payout')->with('error', 'Veuillez sélectionner l\'agence qui encaisse.');
+            }
 
             if ($request->get('confirm') === '1') {
                 // Étape 2 : confirmation du paiement.
@@ -1940,7 +1970,7 @@ class TransactionController extends Controller
                         ],
                         'json' => [
                             'pickup_code' => $pickupCode,
-                            'agent_id' => $agent['id'] ?? null,
+                            'agent_id' => $payerAgentId,
                             'payout_id_number' => $request->get('payout_id_number'),
                             'payout_id_type' => $request->get('payout_id_type') ?: 'CNI',
                         ]
@@ -1970,7 +2000,7 @@ class TransactionController extends Controller
                     ],
                     'json' => [
                         'pickup_code' => $pickupCode,
-                        'agent_id' => $agent['id'] ?? null,
+                        'agent_id' => $payerAgentId,
                     ]
                 ]);
                 $body = json_decode($res->getBody()->getContents(), true);
@@ -1987,6 +2017,6 @@ class TransactionController extends Controller
             }
         }
 
-        return view('transactions.internal_payout', compact('token', 'role', 'user', 'menu', 'step', 'lookup', 'pickupCode'));
+        return view('transactions.internal_payout', compact('token', 'role', 'user', 'menu', 'step', 'lookup', 'pickupCode', 'needsAgentPicker', 'agentsList', 'payerAgentId'));
     }
 }
