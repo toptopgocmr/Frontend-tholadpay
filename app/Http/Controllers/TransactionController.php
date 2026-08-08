@@ -1948,13 +1948,41 @@ class TransactionController extends Controller
         }
         $payerAgentId = $agent['id'] ?? $request->get('payer_agent_id');
 
-        // AJOUT (2026-08-08) : liste des retraits internes déjà "consultés" par
-        // leur bénéficiaire depuis l'écran mobile public (SuiviRetraitPage), donc
-        // probablement en route vers une agence — voir migration
-        // add_beneficiary_checkin_to_transactions_table. L'agent peut cliquer
-        // directement une ligne pour lancer la vérification, au lieu de ressaisir
-        // le code à la main (demande utilisateur du 2026-08-08).
+        // AJOUT (2026-08-08) : liste de TOUS les transferts internes (tous statuts),
+        // avec filtres — demande utilisateur : "l'admin doit voir toutes les
+        // transactions en liste, et mettre des filtres pour les rechercher, code,
+        // date, nom de l'agence etc." Remplace l'ancienne liste limitée aux seuls
+        // retraits déjà "consultés" par leur bénéficiaire (celle-ci reste visible :
+        // colonne "Consulté le", triable/filtrable comme le reste).
+        $filterCode = trim((string) $request->get('f_code'));
+        $filterDate = trim((string) $request->get('f_date'));
+        $filterAgency = trim((string) $request->get('f_agency'));
+        $filterStatus = trim((string) $request->get('f_status'));
+        $listPage = max(1, (int) ($request->get('list_page') ?: 1));
+
+        $listQuery = [
+            'corridor_id' => 3,
+            '_includes' => 'user,agent,agent.country',
+            '_sort' => 'created_at',
+            '_sortDir' => 'desc',
+            'per_page' => 30,
+            'page' => $listPage,
+        ];
+        if ($filterCode !== '') {
+            $listQuery['internal_pickup_code-lk'] = $filterCode;
+        }
+        if ($filterDate !== '') {
+            $listQuery['created_at'] = $filterDate;
+        }
+        if ($filterAgency !== '') {
+            $listQuery['agent-fk'] = 'nom_commercial-lk=' . $filterAgency;
+        }
+        if ($filterStatus !== '') {
+            $listQuery['etat_transac'] = $filterStatus;
+        }
+
         $pendingList = [];
+        $listMeta = ['total' => 0, 'current_page' => 1, 'last_page' => 1];
         try {
             $res = $client->get(config('keys.url_api') . 'transactions', [
                 'verify' => false,
@@ -1962,17 +1990,15 @@ class TransactionController extends Controller
                     'Content-Type' => 'application/json',
                     'Authorization' => 'Bearer ' . $token
                 ],
-                'query' => [
-                    'corridor_id' => 3,
-                    'etat_transac' => 'AwaitingPickup',
-                    'beneficiary_checked_in_at-not_nl' => 1,
-                    '_includes' => 'user,agent,agent.country',
-                    '_sort' => 'beneficiary_checked_in_at',
-                    '_sortDir' => 'desc',
-                    'per_page' => 100,
-                ]
+                'query' => $listQuery
             ]);
-            $pendingList = json_decode($res->getBody()->getContents(), true)['data'] ?? [];
+            $body = json_decode($res->getBody()->getContents(), true);
+            $pendingList = $body['data'] ?? [];
+            $listMeta = [
+                'total' => $body['total'] ?? count($pendingList),
+                'current_page' => $body['current_page'] ?? 1,
+                'last_page' => $body['last_page'] ?? 1,
+            ];
         } catch (\Exception $e) {
             $pendingList = [];
         }
@@ -2079,6 +2105,6 @@ class TransactionController extends Controller
             }
         }
 
-        return view('transactions.internal_payout', compact('token', 'role', 'user', 'menu', 'step', 'lookup', 'pickupCode', 'needsAgentPicker', 'agentsList', 'payerAgentId', 'pendingList'));
+        return view('transactions.internal_payout', compact('token', 'role', 'user', 'menu', 'step', 'lookup', 'pickupCode', 'needsAgentPicker', 'agentsList', 'payerAgentId', 'pendingList', 'listMeta', 'filterCode', 'filterDate', 'filterAgency', 'filterStatus'));
     }
 }

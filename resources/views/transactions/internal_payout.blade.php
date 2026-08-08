@@ -53,11 +53,13 @@
                             @endif
 
                             @if ($step === 'lookup')
-                                {{-- AJOUT (2026-08-08) : liste des retraits déjà "consultés" par leur
-                                     bénéficiaire depuis l'application mobile (écran public "Vérifier un
-                                     retrait") — voir Transaction::beneficiary_checked_in_at. L'agent clique
-                                     directement une ligne pour lancer la vérification, sans ressaisir le code. --}}
-                                <h5>Transactions entrantes en attente</h5>
+                                {{-- AJOUT (2026-08-08) : liste de TOUS les transferts internes (tous
+                                     statuts), avec filtres — demande utilisateur : "l'admin doit voir
+                                     toutes les transactions en liste, et mettre des filtres pour les
+                                     rechercher, code, date, nom de l'agence etc." L'agent clique
+                                     directement une ligne "En attente" pour lancer la vérification, sans
+                                     ressaisir le code. --}}
+                                <h5>Transactions internes</h5>
                                 @if ($needsAgentPicker)
                                     <div class="form-group row">
                                         <label for="payer_agent_selector" class="col-2 col-form-label">Agence qui encaisse <i class="red">*</i></label>
@@ -73,50 +75,108 @@
                                         </div>
                                     </div>
                                 @endif
+
+                                <form action="{{ route('internal_payout') }}" method="get" class="form-horizontal mb-3">
+                                    <div class="form-row align-items-end">
+                                        <div class="form-group col-md-3">
+                                            <label for="f_code">Code de retrait</label>
+                                            <input type="text" class="form-control text-uppercase" name="f_code" id="f_code" value="{{ $filterCode }}" placeholder="XXXX-XXXX">
+                                        </div>
+                                        <div class="form-group col-md-2">
+                                            <label for="f_date">Date d'envoi</label>
+                                            <input type="date" class="form-control" name="f_date" id="f_date" value="{{ $filterDate }}">
+                                        </div>
+                                        <div class="form-group col-md-3">
+                                            <label for="f_agency">Agence expéditrice</label>
+                                            <input type="text" class="form-control" name="f_agency" id="f_agency" value="{{ $filterAgency }}" placeholder="Nom de l'agence">
+                                        </div>
+                                        <div class="form-group col-md-2">
+                                            <label for="f_status">Statut</label>
+                                            <select class="form-control" name="f_status" id="f_status">
+                                                <option value="">— Tous —</option>
+                                                <option value="AwaitingPickup" {{ $filterStatus === 'AwaitingPickup' ? 'selected' : '' }}>En attente</option>
+                                                <option value="success" {{ $filterStatus === 'success' ? 'selected' : '' }}>Payé</option>
+                                                <option value="Rejected" {{ $filterStatus === 'Rejected' ? 'selected' : '' }}>Rejeté</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group col-md-2">
+                                            <button type="submit" class="btn btn-primary btn-block">
+                                                <i class="mdi mdi-filter-outline mr-1"></i> Filtrer
+                                            </button>
+                                        </div>
+                                    </div>
+                                    @if ($filterCode || $filterDate || $filterAgency || $filterStatus)
+                                        <a href="{{ route('internal_payout') }}" class="small">Réinitialiser les filtres</a>
+                                    @endif
+                                </form>
+
                                 @if (count($pendingList) === 0)
-                                    <p class="text-muted">Aucun bénéficiaire n'a encore consulté son code de retrait depuis l'application. Vous pouvez tout de même rechercher un code manuellement ci-dessous.</p>
+                                    <p class="text-muted">Aucune transaction interne ne correspond à ces critères.</p>
                                 @else
-                                    <div class="table-responsive mb-4">
+                                    <div class="table-responsive mb-2">
                                         <table class="table table-sm table-hover">
                                             <thead>
                                                 <tr>
                                                     <th>Statut</th>
                                                     <th>Référence</th>
+                                                    <th>Code</th>
                                                     <th>Bénéficiaire</th>
                                                     <th>Montant</th>
                                                     <th>Pays</th>
                                                     <th>Expéditeur</th>
-                                                    <th>Consulté le</th>
+                                                    <th>Envoyé le</th>
                                                     <th></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 @foreach ($pendingList as $tx)
+                                                    @php
+                                                        $etat = $tx['etat_transac'] ?? '';
+                                                        $statusLabel = 'Statut : ' . ($etat ?: '—');
+                                                        $statusClass = 'badge-secondary';
+                                                        if ($etat === 'AwaitingPickup') { $statusLabel = !empty($tx['beneficiary_checked_in_at']) ? 'En attente (consulté)' : 'En attente'; $statusClass = 'badge-info'; }
+                                                        elseif ($etat === 'success') { $statusLabel = 'Payé'; $statusClass = 'badge-success'; }
+                                                        elseif ($etat === 'Rejected') { $statusLabel = 'Rejeté'; $statusClass = 'badge-danger'; }
+                                                    @endphp
                                                     <tr>
-                                                        <td><span class="badge badge-info">Consulté par le bénéficiaire</span></td>
+                                                        <td><span class="badge {{ $statusClass }}">{{ $statusLabel }}</span></td>
                                                         <td><strong>{{ $tx['ranking'] ?? '—' }}</strong></td>
+                                                        <td><code>{{ $tx['internal_pickup_code'] ?? '—' }}</code></td>
                                                         <td>{{ strtoupper($tx['recipient_first_name'] ?? '') }} {{ ucwords($tx['recipient_last_name'] ?? '') }}</td>
                                                         <td>{{ number_format($tx['montant_beneficiaire'] ?? 0, 0, ',', ' ') }} {{ $tx['to_currency'] ?? '' }}</td>
                                                         <td>{{ $tx['receiving_country'] ?? '—' }}</td>
-                                                        <td>{{ $tx['user']['first_name'] ?? '' }} {{ $tx['user']['last_name'] ?? '' }} <span class="text-muted">({{ $tx['user']['phone_number'] ?? '—' }} — {{ $tx['agent']['nom_commercial'] ?? '—' }}, {{ $tx['agent']['country']['name'] ?? '—' }})</span></td>
-                                                        <td>{{ !empty($tx['beneficiary_checked_in_at']) ? \Carbon\Carbon::parse($tx['beneficiary_checked_in_at'])->format('d/m/Y H:i') : '—' }}</td>
+                                                        <td>{{ $tx['user']['first_name'] ?? '' }} {{ $tx['user']['last_name'] ?? '' }} <span class="text-muted">({{ $tx['agent']['nom_commercial'] ?? '—' }}, {{ $tx['agent']['country']['name'] ?? '—' }})</span></td>
+                                                        <td>{{ !empty($tx['created_at']) ? \Carbon\Carbon::parse($tx['created_at'])->format('d/m/Y H:i') : '—' }}</td>
                                                         <td>
-                                                            <form action="{{ route('internal_payout') }}" method="post" class="d-inline quick-verify-form">
-                                                                {{ csrf_field() }}
-                                                                <input type="hidden" name="pickup_code" value="{{ $tx['internal_pickup_code'] ?? '' }}">
-                                                                @if ($needsAgentPicker)
-                                                                    <input type="hidden" name="payer_agent_id" class="payer_agent_hidden" value="{{ $payerAgentId }}">
-                                                                @endif
-                                                                <button type="submit" class="btn btn-sm btn-primary waves-effect">
-                                                                    <i class="mdi mdi-magnify mr-1"></i> Vérifier
-                                                                </button>
-                                                            </form>
+                                                            @if ($etat === 'AwaitingPickup')
+                                                                <form action="{{ route('internal_payout') }}" method="post" class="d-inline quick-verify-form">
+                                                                    {{ csrf_field() }}
+                                                                    <input type="hidden" name="pickup_code" value="{{ $tx['internal_pickup_code'] ?? '' }}">
+                                                                    @if ($needsAgentPicker)
+                                                                        <input type="hidden" name="payer_agent_id" class="payer_agent_hidden" value="{{ $payerAgentId }}">
+                                                                    @endif
+                                                                    <button type="submit" class="btn btn-sm btn-primary waves-effect">
+                                                                        <i class="mdi mdi-magnify mr-1"></i> Vérifier
+                                                                    </button>
+                                                                </form>
+                                                            @endif
                                                         </td>
                                                     </tr>
                                                 @endforeach
                                             </tbody>
                                         </table>
                                     </div>
+                                    @if ($listMeta['last_page'] > 1)
+                                        <nav class="mb-4">
+                                            <ul class="pagination pagination-sm">
+                                                @for ($p = 1; $p <= $listMeta['last_page']; $p++)
+                                                    <li class="page-item {{ $p == $listMeta['current_page'] ? 'active' : '' }}">
+                                                        <a class="page-link" href="{{ route('internal_payout', array_merge(request()->query(), ['list_page' => $p])) }}">{{ $p }}</a>
+                                                    </li>
+                                                @endfor
+                                            </ul>
+                                        </nav>
+                                    @endif
                                 @endif
 
                                 <h5>Étape 1 — Code de retrait</h5>
