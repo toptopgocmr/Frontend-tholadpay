@@ -95,12 +95,27 @@
                                 @if ($lookup)
                                     <div class="row mb-3">
                                         <div class="col-6">
+                                            <h6 class="text-muted text-uppercase">Bénéficiaire</h6>
                                             <table class="table table-sm table-bordered">
                                                 <tr><td class="text-muted">Référence</td><td><strong>{{ $lookup['ranking'] ?? '—' }}</strong></td></tr>
                                                 <tr><td class="text-muted">Bénéficiaire</td><td><strong>{{ strtoupper($lookup['beneficiary_first_name'] ?? '') }} {{ ucwords($lookup['beneficiary_last_name'] ?? '') }}</strong></td></tr>
                                                 <tr><td class="text-muted">Téléphone bénéficiaire</td><td>{{ $lookup['beneficiary_phone'] ?? '—' }}</td></tr>
                                                 <tr><td class="text-muted">Pays</td><td>{{ $lookup['receiving_country'] ?? '—' }}</td></tr>
                                                 <tr><td class="text-muted">Montant à remettre</td><td><strong style="color:#12709E; font-size:16px;">{{ number_format($lookup['amount_to_pay'] ?? 0, 0, ',', ' ') }} {{ $lookup['currency'] ?? '' }}</strong></td></tr>
+                                            </table>
+                                        </div>
+                                        {{-- AJOUT (2026-08-08) : informations expéditeur / provenance (demande
+                                             utilisateur du 2026-08-08) — voir InternalTransferController::
+                                             lookup_internal_transaction. --}}
+                                        <div class="col-6">
+                                            <h6 class="text-muted text-uppercase">Expéditeur</h6>
+                                            <table class="table table-sm table-bordered">
+                                                <tr><td class="text-muted">Expéditeur</td><td><strong>{{ strtoupper($lookup['sender_first_name'] ?? '') }} {{ ucwords($lookup['sender_last_name'] ?? '') }}</strong></td></tr>
+                                                <tr><td class="text-muted">Téléphone expéditeur</td><td>{{ $lookup['sender_phone'] ?? '—' }}</td></tr>
+                                                <tr><td class="text-muted">Pays de provenance</td><td>{{ $lookup['sending_country'] ?? '—' }}</td></tr>
+                                                <tr><td class="text-muted">Agence expéditrice</td><td>{{ $lookup['sending_agency'] ?? '—' }}</td></tr>
+                                                <tr><td class="text-muted">Montant envoyé</td><td>{{ number_format($lookup['amount_sent'] ?? 0, 0, ',', ' ') }} {{ $lookup['sent_currency'] ?? '' }}</td></tr>
+                                                <tr><td class="text-muted">Motif</td><td>{{ $lookup['transaction_reason'] ?? '—' }}</td></tr>
                                             </table>
                                         </div>
                                     </div>
