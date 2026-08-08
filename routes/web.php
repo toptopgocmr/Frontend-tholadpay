@@ -37,6 +37,10 @@ Route::match(array('GET','POST'), 'admin/transactions/{id}/quotation', [ 'middle
 Route::match(array('GET','POST'), 'admin/transactions/{id}/sendtransaction', [ 'middleware' => ['all', 'cors'], 'uses' => 'TransactionController@sendtransaction', 'as' => 'transaction_transac' ]);
 Route::match(array('GET','POST'), 'admin/transactions/{id}/checkstatus', [ 'middleware' => ['all', 'cors'], 'uses' => 'TransactionController@checkStatusOfTransaction', 'as' => 'transaction_check' ]);
 Route::match(array('GET','POST'), 'admin/transactions/{id}/notes', [ 'middleware' => ['all', 'cors'], 'uses' => 'TransactionController@viewNotes', 'as' => 'transaction_notes' ]);
+// AJOUT (2026-08-08) : écran "payer un retrait interne" — un agent saisit le
+// code de retrait donné par le bénéficiaire (voir InternalTransferController
+// côté backend), vérifie le montant/nom, puis confirme le paiement.
+Route::match(array('GET','POST'), 'admin/retraits-internes', [ 'middleware' => ['all', 'cors'], 'uses' => 'TransactionController@payoutInternal', 'as' => 'internal_payout' ]);
 
 Route::match(array('GET','POST'), 'admin/transactions/validate', [ 'middleware' => ['all'], 'uses' => 'TransactionController@validateTransaction', 'as' => 'transaction_validate' ]);
 Route::match(array('GET','POST'), 'admin/transactions/cancel', [ 'middleware' => ['all'], 'uses' => 'TransactionController@delete', 'as' => 'transaction_delete' ]);

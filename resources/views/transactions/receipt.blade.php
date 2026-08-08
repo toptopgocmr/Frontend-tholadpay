@@ -50,6 +50,28 @@
         .status-badge.acknowledged { background: #fff3d6; color: #b9790a; }
         .status-badge.failed { background: #fde8e8; color: #c0392b; }
         .status-badge.cancelled { background: #ececec; color: #666; }
+        .status-badge.AwaitingPickup { background: #e6f0fa; color: #12709E; }
+        .pickup-code-box {
+            margin-top: 14px;
+            padding: 16px 20px;
+            background: #e6f0fa;
+            border: 1px dashed #12709E;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .pickup-code-box .label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #12709E;
+        }
+        .pickup-code-box .code {
+            font-size: 26px;
+            font-weight: bold;
+            letter-spacing: 3px;
+            color: #12709E;
+            margin-top: 4px;
+        }
         .section-title {
             font-size: 13px;
             text-transform: uppercase;
@@ -148,6 +170,7 @@
                     'acknowledged' => 'Paiement en attente',
                     'failed' => 'Transaction rejetée',
                     'cancelled' => 'Transaction annulée',
+                    'AwaitingPickup' => 'En attente de retrait',
                 ];
                 $statusClass = in_array($etat, array_keys($statusLabels)) ? $etat : 'acknowledged';
             @endphp
@@ -161,11 +184,30 @@
             </div>
         @endif
 
+        @php
+            // AJOUT (2026-08-08) : corridor_id=3 = transfert interne (retrait en
+            // espèces par code, voir InternalTransferController) — l'outbound de ces
+            // transactions n'a ni bank ni mobile renseigné, d'où ce cas à part.
+            $isInternalReceipt = (string) ($transaction['corridor_id'] ?? '') === '3';
+        @endphp
         <table class="info">
             <tr><td class="label">Numéro de transaction</td><td class="value">{{ $transaction['ranking'] ?? '—' }}</td></tr>
             <tr><td class="label">Date</td><td class="value">{{ $transaction['created_at'] ? \Carbon\Carbon::parse($transaction['created_at'])->format('d/m/Y H:i') : '—' }}</td></tr>
-            <tr><td class="label">Type de transaction</td><td class="value">{{ ($transaction['outbound']['bank'] ?? null) === null ? 'Mobile money' : 'Virement bancaire' }}</td></tr>
+            <tr><td class="label">Type de transaction</td><td class="value">
+                @if($isInternalReceipt)
+                    Retrait en espèces (réseau interne TholadPay)
+                @else
+                    {{ ($transaction['outbound']['bank'] ?? null) === null ? 'Mobile money' : 'Virement bancaire' }}
+                @endif
+            </td></tr>
         </table>
+
+        @if($isInternalReceipt && !empty($transaction['internal_pickup_code']) && $etat !== 'success')
+            <div class="pickup-code-box">
+                <div class="label">Code de retrait à présenter en agence</div>
+                <div class="code">{{ $transaction['internal_pickup_code'] }}</div>
+            </div>
+        @endif
 
         <div class="section-title">Expéditeur</div>
         <table class="info">
@@ -190,7 +232,9 @@
             </tr>
             <tr><td class="label">Téléphone</td><td class="value">{{ $transaction['recipient_phone'] ?? '—' }}</td></tr>
             <tr><td class="label">Pays</td><td class="value">{{ strtoupper($transaction['receiving_country'] ?? '') }}</td></tr>
-            @if(($transaction['outbound']['bank'] ?? null) !== null)
+            @if($isInternalReceipt)
+                <tr><td class="label">Mode de retrait</td><td class="value">Espèces, n'importe quelle agence TholadPay du pays</td></tr>
+            @elseif(($transaction['outbound']['bank'] ?? null) !== null)
                 <tr><td class="label">Banque</td><td class="value">{{ $transaction['outbound']['bank']['organisation'] ?? '—' }}</td></tr>
                 <tr><td class="label">IBAN</td><td class="value">{{ $transaction['outbound']['bank']['bank_account_no'] ?? '—' }}</td></tr>
             @else

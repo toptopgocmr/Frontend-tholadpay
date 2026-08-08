@@ -24,6 +24,14 @@
                     class="waves-effect {{$menu === 'Transaction' ? 'mm-active' : ''}}"><i
                                 class="fas fa-cash-register"></i><span> Transactions</span></a>
                 </li>
+                {{-- AJOUT (2026-08-08) : payer un retrait interne (réseau tholadpay, code de retrait) --}}
+                @if($role === 'administrator' || $role === 'agent' || $role === 'cashier' || $role === 'csa' || $role === 'finance_manager' || $role === 'technical_support')
+                <li>
+                    <a href="{{route('internal_payout')}}"
+                    class="waves-effect {{$menu === 'InternalPayout' ? 'mm-active' : ''}}"><i
+                                class="fas fa-hand-holding-usd"></i><span> Retrait interne</span></a>
+                </li>
+                @endif
                 @if($role === 'administrator')
                     <li>
                         <a href="{{route('town_list')}}" class="waves-effect {{$menu === 'Town' ? 'mm-active' : ''}}"><i

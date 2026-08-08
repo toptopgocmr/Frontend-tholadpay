@@ -144,7 +144,11 @@ class TransactionController extends Controller
                     $tr['isnote'] = '1';
 
                 // @unlink($tr['notes']);
-                if ($tr['transaction_status'] === 'approuved' && $tr['reference'] !== '' && $tr['date_init'] === $d && $tr['etat_transac'] !== 'success' && $tr['etat_transac'] !== 'failed') {
+                // AJOUT (2026-08-08) : corridor_id=3 = transfert interne (voir
+                // InternalTransferController) — rien n'est "en cours" chez un partenaire
+                // externe pour ce type de transaction, il n'y a donc rien à interroger ici ;
+                // le statut ne change que via payout_internal_transaction (code de retrait).
+                if ($tr['transaction_status'] === 'approuved' && $tr['reference'] !== '' && $tr['date_init'] === $d && $tr['etat_transac'] !== 'success' && $tr['etat_transac'] !== 'failed' && (string) ($tr['corridor_id'] ?? '') !== '3') {
                     // dump($tr);
                     $isDigitwaceTx = (string) ($tr['corridor_id'] ?? '') === '2';
                     $tar = [
@@ -685,9 +689,12 @@ class TransactionController extends Controller
         // rejetée/échouée (failed) ou annulée (cancelled) — cf. demande utilisateur
         // du 2026-07-22 d'avoir un reçu justificatif même pour les transactions
         // rejetées par Peex (statut "REJECTED" côté API -> etat_transac = failed).
+        // AJOUT (2026-08-08) : AwaitingPickup (transfert interne validé, code généré,
+        // en attente de retrait — voir InternalTransferController) doit aussi avoir un
+        // reçu, notamment pour que l'expéditeur ait une preuve avec le code dessus.
         // Seul un état "New" (jamais soumise) reste sans reçu, faute d'info exploitable.
         $etat = $transaction['etat_transac'] ?? null;
-        if (!in_array($etat, ['acknowledged', 'success', 'failed', 'cancelled'])) {
+        if (!in_array($etat, ['acknowledged', 'success', 'failed', 'cancelled', 'AwaitingPickup'])) {
             return redirect()->route('transaction_show', $id)->with('error', 'Le reçu n\'est pas disponible pour cette transaction.');
         }
 
@@ -1200,7 +1207,22 @@ class TransactionController extends Controller
                     } else {
                         try {
                             $p = null;
-                            if ($transaction['outbound']['bank'] !== null) {
+                            // AJOUT (2026-08-08) : transfert interne (voir InternalTransferController) —
+                            // prioritaire sur le type Bank/Mobile/Cash choisi à la création : aucun appel
+                            // externe, juste un code de retrait aléatoire. S'applique quel que soit le
+                            // type puisque le bénéficiaire retire de toute façon en espèces chez
+                            // n'importe quel agent tholadpay du pays destinataire.
+                            if ($partnerChoice === 'internal') {
+                                $p = $client->post(config('keys.url_api') . 'send_internal_transaction', [
+                                    'verify' => false,
+                                    'headers' => [
+                                        'Content-Type' => 'application/json',
+                                        'Authorization' => 'Bearer ' . $token
+                                    ],
+                                    'json' => []
+                                ]);
+                                $p = json_decode($p->getBody()->getContents(), true);
+                            } else if ($transaction['outbound']['bank'] !== null) {
                                 // FIX (nettoyage TerraPay -> Peex) : ne garder que les champs
                                 // réellement lus par OutboundController::send_bank_transaction()
                                 // (voir sa liste $request->get(...) — user_id, sender_id,
@@ -1370,19 +1392,29 @@ class TransactionController extends Controller
                                 // exposent désormais un 'track_id' stable au niveau racine ; on
                                 // horodate localement puisque Peex ne fournit pas ces dates.
                                 $now = @date('Y-m-d H:i:s');
+                                $isInternalTx = $partnerChoice === 'internal';
                                 $tran2Update = [
                                     'reference' => $p['track_id'] ?? $p['reference'] ?? $transaction['ranking'],
                                     'validate' => 1,
                                     'transaction_status' => 'approuved',
-                                    'etat_transac' => 'Pending',
+                                    // AJOUT (2026-08-08) : statut dédié pour les transferts internes — pas
+                                    // "Pending" (qui, pour Peex/DigitWace, signifie "en cours de traitement
+                                    // chez le partenaire") : ici il n'y a rien en cours chez qui que ce soit,
+                                    // on attend juste que le bénéficiaire se présente avec le code. Exclu du
+                                    // polling automatique de statut (voir index()) et ajouté à la liste des
+                                    // statuts autorisant un reçu (voir receipt()).
+                                    'etat_transac' => $isInternalTx ? 'AwaitingPickup' : 'Pending',
                                     'valid_id' => $user['id'],
                                     'corridor_id' => $partner['client']['id'],
                                     'nom_api' => $partner['client']['name'],
                                     'fxrate' => $request->get('fxRate'),
                                     'validate_at' => $now,
                                     'date_init' => $now,
-                                    'date_complete' => $now
+                                    'date_complete' => $now,
                                 ];
+                                if ($isInternalTx) {
+                                    $tran2Update['internal_pickup_code'] = $p['pickup_code'] ?? $p['reference'] ?? null;
+                                }
                                 $res = $client->put(config('keys.url_api') . 'transactions/' . $transaction['id'], [
                                     'verify' => false,
                                     'headers' => [
@@ -1418,12 +1450,28 @@ class TransactionController extends Controller
                                 $phone_sender =  $transaction['user']['phone_number'];
                                 $phone_receive = $transaction['recipient_phone'];
                                 $txtFrom = "THOLADPAY";
+                                $pickupCode = $tran2Update['internal_pickup_code'] ?? null;
 
-                                $successSMS = [
-                                    "from" =>  $txtFrom,
-                                    "to" =>  $phone_sender,
-                                    "text" =>  "Cher(e) client(e), votre transaction TholadPay N° " . $transaction['ranking'] . " de " . $transaction['amount'] . " FCFA vers " . $transaction['receiving_country'] . " Votre opération est en cours de traitement. TholadPay vous remercie."
-                                ];
+                                // AJOUT (2026-08-08) : pour un transfert interne, le SMS générique
+                                // ("en cours de traitement") ne suffit pas — sans le code, ni
+                                // l'expéditeur ni le bénéficiaire ne peuvent retirer l'argent nulle
+                                // part. On envoie donc un texte dédié à l'expéditeur (avec le code, à
+                                // transmettre lui-même si besoin) ET, en plus du SMS habituel, un
+                                // second SMS directement au bénéficiaire ($phone_receive était calculé
+                                // mais jamais utilisé jusqu'ici).
+                                if ($isInternalTx && $pickupCode) {
+                                    $successSMS = [
+                                        "from" =>  $txtFrom,
+                                        "to" =>  $phone_sender,
+                                        "text" =>  "Cher(e) client(e), votre transaction TholadPay N° " . $transaction['ranking'] . " de " . $transaction['amount'] . " FCFA vers " . $transaction['receiving_country'] . " a été validée. Code de retrait : " . $pickupCode . ". Communiquez ce code au bénéficiaire pour le retrait. TholadPay vous remercie."
+                                    ];
+                                } else {
+                                    $successSMS = [
+                                        "from" =>  $txtFrom,
+                                        "to" =>  $phone_sender,
+                                        "text" =>  "Cher(e) client(e), votre transaction TholadPay N° " . $transaction['ranking'] . " de " . $transaction['amount'] . " FCFA vers " . $transaction['receiving_country'] . " Votre opération est en cours de traitement. TholadPay vous remercie."
+                                    ];
+                                }
                                 $resSend = $client->post(config('keys.url_api') . 'auth/send_sms_to_phone', [
                                     'verify' => false,
                                     'headers' => [
@@ -1432,6 +1480,22 @@ class TransactionController extends Controller
                                     'json' => $successSMS
                                 ]);
                                 $resSend = json_decode($resSend->getBody()->getContents(), true);
+
+                                if ($isInternalTx && $pickupCode && $phone_receive) {
+                                    $beneficiarySMS = [
+                                        "from" =>  $txtFrom,
+                                        "to" =>  $phone_receive,
+                                        "text" =>  "Vous avez un transfert TholadPay de " . ($transaction['montant_beneficiaire'] ?? $transaction['amount']) . " à retirer. Code de retrait : " . $pickupCode . ". Présentez ce code et une pièce d'identité dans n'importe quelle agence TholadPay au " . $transaction['receiving_country'] . "."
+                                    ];
+                                    $resSendBenef = $client->post(config('keys.url_api') . 'auth/send_sms_to_phone', [
+                                        'verify' => false,
+                                        'headers' => [
+                                            'Content-Type' => 'application/json'
+                                        ],
+                                        'json' => $beneficiarySMS
+                                    ]);
+                                    $resSendBenef = json_decode($resSendBenef->getBody()->getContents(), true);
+                                }
 
                                 // AJOUT (2026-08-08) : DigitWace exige un appel /transaction/confirm
                                 // après la création (voir OutboundController::confirmDigitwaceTransaction) —
@@ -1452,6 +1516,11 @@ class TransactionController extends Controller
                                         . ($p['confirm_message'] ?? 'raison inconnue')
                                         . '). Référence : ' . ($p['reference'] ?? $transaction['ranking'])
                                         . '. Contactez le support DigitWace pour confirmer manuellement.');
+                                }
+                                if ($isInternalTx && $pickupCode) {
+                                    return redirect()->route('transaction_list')->with('success',
+                                        'Transfert interne validé ! Code de retrait : ' . $pickupCode
+                                        . ' — à communiquer au bénéficiaire pour le retrait en agence.');
                                 }
                                 return redirect()->route('transaction_list')->with('success', 'Paiement effectué avec succes! Verifiez le status !');
                             } else {
@@ -1820,5 +1889,104 @@ class TransactionController extends Controller
             // dump($e->getMessage());
         }
         return view('transactions.trace', compact('token', 'role', 'user', 'menu', 'transaction', 'admin'));
+    }
+
+    /**
+     * AJOUT (2026-08-08) : écran "payer un retrait interne" (voir
+     * InternalTransferController côté backend / Task #21). Formulaire en 2
+     * étapes géré par un seul champ caché 'step', même principe que le
+     * wizard de validation existant (update -> getquotation -> sendtransaction) :
+     *   1. 'lookup'  : l'agent saisit le code de retrait -> lookup_internal_transaction
+     *                  affiche montant/nom du bénéficiaire pour vérification.
+     *   2. 'confirm' : l'agent saisit la pièce d'identité présentée ->
+     *                  payout_internal_transaction enregistre le paiement et
+     *                  crédite le solde de l'agent payeur (décision utilisateur
+     *                  du 2026-08-08 : l'agent avance l'argent de sa caisse, le
+     *                  règlement entre agences se fait hors application).
+     * N'importe quel agent connecté peut payer n'importe quel code (décision
+     * utilisateur : pas d'agence fixe à l'envoi) — countryMismatchWarning côté
+     * backend affiche juste un avertissement non-bloquant si le pays de
+     * l'agent diffère du pays destinataire.
+     */
+    public function payoutInternal(Request $request)
+    {
+        $token = $request->session()->get('token');
+        $role = $request->session()->get('role');
+        $user = $request->session()->get('user');
+        $agent = $request->session()->get('agent');
+        $menu = 'InternalPayout';
+        // Résoudre l'agent (même logique que index()) : si l'agent a lui-même
+        // un agent parent, c'est ce dernier qui encaisse/décaisse réellement.
+        if ($agent !== null && isset($agent['agent']) && $agent['agent'] !== null) {
+            $agent = $agent['agent'];
+        }
+
+        $step = 'lookup';
+        $lookup = null;
+        $pickupCode = null;
+
+        if ($request->getMethod() === 'POST') {
+            $client = new Client();
+            $pickupCode = strtoupper(trim((string) $request->get('pickup_code')));
+
+            if ($request->get('confirm') === '1') {
+                // Étape 2 : confirmation du paiement.
+                try {
+                    $res = $client->post(config('keys.url_api') . 'payout_internal_transaction', [
+                        'verify' => false,
+                        'headers' => [
+                            'Content-Type' => 'application/json',
+                            'Authorization' => 'Bearer ' . $token
+                        ],
+                        'json' => [
+                            'pickup_code' => $pickupCode,
+                            'agent_id' => $agent['id'] ?? null,
+                            'payout_id_number' => $request->get('payout_id_number'),
+                            'payout_id_type' => $request->get('payout_id_type') ?: 'CNI',
+                        ]
+                    ]);
+                    $body = json_decode($res->getBody()->getContents(), true);
+                    return redirect()->route('internal_payout')->with('success',
+                        'Paiement confirmé ! Transaction ' . ($body['ranking'] ?? '') . ' — '
+                        . number_format($body['amount_paid'] ?? 0, 0, ',', ' ') . ' versés au bénéficiaire.');
+                } catch (ClientException $e) {
+                    $body = json_decode($e->getResponse()->getBody()->getContents(), true);
+                    return redirect()->route('internal_payout')->with('error', $body['message'] ?? 'Erreur lors de la confirmation du paiement.');
+                } catch (\Exception $e) {
+                    return redirect()->route('internal_payout')->with('error', 'Erreur inattendue lors de la confirmation du paiement.');
+                }
+            }
+
+            // Étape 1 : recherche par code.
+            if ($pickupCode === '') {
+                return redirect()->route('internal_payout')->with('error', 'Veuillez saisir un code de retrait.');
+            }
+            try {
+                $res = $client->post(config('keys.url_api') . 'lookup_internal_transaction', [
+                    'verify' => false,
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                        'Authorization' => 'Bearer ' . $token
+                    ],
+                    'json' => [
+                        'pickup_code' => $pickupCode,
+                        'agent_id' => $agent['id'] ?? null,
+                    ]
+                ]);
+                $body = json_decode($res->getBody()->getContents(), true);
+                $lookup = $body['transaction'] ?? null;
+                $step = 'confirm';
+                if (!empty($body['warning'])) {
+                    session()->flash('warning', $body['warning']);
+                }
+            } catch (ClientException $e) {
+                $body = json_decode($e->getResponse()->getBody()->getContents(), true);
+                return redirect()->route('internal_payout')->with('error', $body['message'] ?? 'Code de retrait introuvable.');
+            } catch (\Exception $e) {
+                return redirect()->route('internal_payout')->with('error', 'Erreur inattendue lors de la recherche du code.');
+            }
+        }
+
+        return view('transactions.internal_payout', compact('token', 'role', 'user', 'menu', 'step', 'lookup', 'pickupCode'));
     }
 }
