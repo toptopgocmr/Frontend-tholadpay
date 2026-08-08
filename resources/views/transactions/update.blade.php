@@ -59,14 +59,36 @@
                                                 <div class="form-group row">
                                                     <label for="partner" class="col-4 col-form-label">Partenaire <i
                                                                 class="red">*</i></label>
+                                    @php
+                                        // AJOUT (2026-08-08) : Cash Pickup (retrait en espèces), saisi dès la
+                                        // création mobile, n'existe que chez DigitWace — voir App\Cash /
+                                        // TransactionController::update() qui force déjà $partnerChoice côté
+                                        // serveur. On désactive ici l'option Peex pour éviter toute confusion
+                                        // (le serveur l'ignorerait de toute façon si elle était soumise).
+                                        $isCashPickup = isset($transaction['outbound']['cash']) && $transaction['outbound']['cash'] !== null;
+                                    @endphp
                                                     <div class="col-8">
                                                         <select class="form-control" name="partner" id="partner" onchange="tholadpayToggleDigitwaceFields()">
-                                                            <option value="peex" {{ (($partnerChoice ?? 'peex') === 'peex') ? 'selected' : '' }}>Peex</option>
-                                                            <option value="digitwace" {{ (($partnerChoice ?? 'peex') === 'digitwace') ? 'selected' : '' }}>DigitWace</option>
+                                                            <option value="peex" {{ $isCashPickup ? 'disabled' : '' }} {{ (($partnerChoice ?? 'peex') === 'peex') ? 'selected' : '' }}>Peex</option>
+                                                            <option value="digitwace" {{ (($partnerChoice ?? 'peex') === 'digitwace' || $isCashPickup) ? 'selected' : '' }}>DigitWace</option>
                                                         </select>
+                                                        @if($isCashPickup)
+                                                            <small class="text-muted">Retrait en espèces : disponible uniquement via DigitWace.</small>
+                                                        @endif
                                                     </div>
                                                 </div>
                                             </div>
+                                            @if($isCashPickup)
+                                                <div class="row">
+                                                    <div class="col-8 offset-4">
+                                                        <div class="alert alert-info" style="margin-top: 10px;">
+                                                            <strong>Retrait en espèces</strong><br>
+                                                            Ville de retrait : {{ $transaction['outbound']['cash']['receiver_city'] ?? '—' }}<br>
+                                                            Question de sécurité : {{ $transaction['outbound']['cash']['security_question'] ?? '—' }}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endif
                                         </div>
                                         {{-- Champs propres à DigitWace (doc §VI/§VIII/§X/§XVI) : sans équivalent
                                              chez Peex, donc masqués par défaut et affichés uniquement quand

@@ -97,14 +97,14 @@ class TransactionController extends Controller
             $d = @gmdate('Y-m-d');
             $host = config('keys.url_api');
             if ($role === 'administrator') {
-                $path = 'transactions?_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile&per_page=3000&created_at=' . $d . '&_sortDir=desc';
+                $path = 'transactions?_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile,outbound.cash&per_page=3000&created_at=' . $d . '&_sortDir=desc';
             } else if ($role === 'csa' || $role === 'finance_manager' || $role === 'technical_support') {
-                $path = 'transactions?_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile&per_page=3000&created_at=' . $d . '&_sortDir=desc';
+                $path = 'transactions?_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile,outbound.cash&per_page=3000&created_at=' . $d . '&_sortDir=desc';
             } else {
-                $path = 'transactions?agent_id=' . $agent['id'] . '&_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile&per_page=3000&created_at=' . $d . '&_sortDir=desc';
+                $path = 'transactions?agent_id=' . $agent['id'] . '&_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile,outbound.cash&per_page=3000&created_at=' . $d . '&_sortDir=desc';
             }
 
-            // $path = 'transactions?_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile&per_page=3000&created_at='.$d.'&_sortDir=desc';
+            // $path = 'transactions?_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile,outbound.cash&per_page=3000&created_at='.$d.'&_sortDir=desc';
             $host = $host . $path;
             $transactions = $client->get($host, [
                 'verify' => false,
@@ -343,7 +343,7 @@ class TransactionController extends Controller
         // dump($typeTransactions);
 
         $client = new Client();
-        $transactions = $client->get(config('keys.url_api') . 'transactions?_includes=sender,sender.user,notes,user,user.agent,outbound.bank,outbound.mobile', [
+        $transactions = $client->get(config('keys.url_api') . 'transactions?_includes=sender,sender.user,notes,user,user.agent,outbound.bank,outbound.mobile,outbound.cash', [
             'verify' => false,
             'headers' => [
                 'Content-Type' => 'application/json',
@@ -547,13 +547,13 @@ class TransactionController extends Controller
             $dtEnc = rawurlencode($dt);
 
             if ($role === 'administrator') {
-                $path = 'transactions?_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile&per_page=3000&created_at-bt=' . $deEnc . ',' . $dtEnc . '&_sortDir=desc';
+                $path = 'transactions?_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile,outbound.cash&per_page=3000&created_at-bt=' . $deEnc . ',' . $dtEnc . '&_sortDir=desc';
             } else if ($role === 'csa' || $role === 'finance_manager' || $role === 'technical_support') {
-                $path = 'transactions?_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile&per_page=3000&etat_transac=success&created_at-bt=' . $deEnc . ',' . $dtEnc . '&_sortDir=desc';
+                $path = 'transactions?_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile,outbound.cash&per_page=3000&etat_transac=success&created_at-bt=' . $deEnc . ',' . $dtEnc . '&_sortDir=desc';
             } else {
                 // ✅ FIX 1 (suite) : $agent n'est plus null ici
                 $agentId = ($agent !== null && isset($agent['id'])) ? $agent['id'] : 0;
-                $path = 'transactions?agent_id=' . $agentId . '&_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile&per_page=3000&created_at-bt=' . $deEnc . ',' . $dtEnc . '&_sortDir=desc';
+                $path = 'transactions?agent_id=' . $agentId . '&_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile,outbound.cash&per_page=3000&created_at-bt=' . $deEnc . ',' . $dtEnc . '&_sortDir=desc';
             }
 
             $response = $client->get($host . $path, [
@@ -607,7 +607,7 @@ class TransactionController extends Controller
         $day = new \DateTime();
         try {
             $client = new Client();
-            $transaction = $client->get(config('keys.url_api') . 'transactions/' . $id . '?_includes=sender,agent,sender.user,user,user.agent,outbound.bank,outbound.mobile', [
+            $transaction = $client->get(config('keys.url_api') . 'transactions/' . $id . '?_includes=sender,agent,sender.user,user,user.agent,outbound.bank,outbound.mobile,outbound.cash', [
                 'verify' => false,
                 'headers' => [
                     'Content-Type' => 'application/json',
@@ -657,7 +657,7 @@ class TransactionController extends Controller
         $transaction = null;
         try {
             $client = new Client();
-            $response = $client->get(config('keys.url_api') . 'transactions/' . $id . '?_includes=sender,agent,sender.user,user,user.agent,outbound.bank,outbound.mobile', [
+            $response = $client->get(config('keys.url_api') . 'transactions/' . $id . '?_includes=sender,agent,sender.user,user,user.agent,outbound.bank,outbound.mobile,outbound.cash', [
                 'verify' => false,
                 'headers' => [
                     'Content-Type' => 'application/json',
@@ -714,7 +714,7 @@ class TransactionController extends Controller
         $partnerChoice = $request->get('partner') ?: $request->session()->get('partner_' . $id, 'peex');
         try {
             $client = new Client();
-            $transaction = $client->get(config('keys.url_api') . 'transactions/' . $id . '?_includes=sender,agent,sender.user,user,user.addresses,user.addresses.town,outbound.bank,outbound.mobile&order=desc', [
+            $transaction = $client->get(config('keys.url_api') . 'transactions/' . $id . '?_includes=sender,agent,sender.user,user,user.addresses,user.addresses.town,outbound.bank,outbound.mobile,outbound.cash&order=desc', [
                 'verify' => false,
                 'headers' => [
                     'Content-Type' => 'application/json',
@@ -723,6 +723,16 @@ class TransactionController extends Controller
             ]);
             $transaction = json_decode($transaction->getBody()->getContents(), true);
             // dump($transaction);
+            // AJOUT (2026-08-08) : Cash Pickup (retrait en espèces) — 3e mode de
+            // livraison, saisi dès la création mobile (voir Cash/outbound.cash),
+            // propre à DigitWace : Peex ne le propose pas du tout. On force donc le
+            // partenaire ici, quel que soit le choix (ou l'absence de choix) fait
+            // dans le menu déroulant — impossible d'envoyer cette transaction via
+            // Peex, même si l'agent le sélectionne par erreur.
+            $isCashPickup = isset($transaction['outbound']['cash']) && $transaction['outbound']['cash'] !== null;
+            if ($isCashPickup) {
+                $partnerChoice = 'digitwace';
+            }
             if ($transaction['transaction_status'] === 'waiting') {
                 $montanTrans = $transaction['amount'] + $transaction['fees'];
                 if ($transaction['sender']['status'] !== 'approuved') {
@@ -823,6 +833,13 @@ class TransactionController extends Controller
                                     'json' => $infoTrans
                                 ]);
                                 $p = json_decode($p->getBody()->getContents(), true);
+                            } else if ($transaction['outbound']['cash'] !== null) {
+                                // AJOUT (2026-08-08) : Cash Pickup — DigitWace n'expose aucune
+                                // vérification préalable pour ce mode (comme Mobile/Bank DigitWace,
+                                // voir OutboundController::check_account_status/check_bank_account_status,
+                                // qui renvoient déjà un pass-through neutre pour ce partenaire). On
+                                // passe donc directement à l'étape cotation sans appel HTTP.
+                                $p = ['status' => 200, 'valid' => null];
                             }
                             // dump($infoTrans);
                             // FIX (2026-07-07) : `$p['status'] === 200` teste uniquement le succès HTTP
@@ -947,7 +964,7 @@ class TransactionController extends Controller
         // directement sur cette étape sans être passé par l'étape 1 (lien direct).
         $partnerChoice = $request->session()->get('partner_' . $id, 'peex');
         try {
-            $transaction = $client->get(config('keys.url_api') . 'transactions/' . $id . '?_includes=sender,agent,sender.user,user,user.addresses,user.addresses.town,user.agent,user.agent.agent,outbound.bank,outbound.mobile&order=desc', [
+            $transaction = $client->get(config('keys.url_api') . 'transactions/' . $id . '?_includes=sender,agent,sender.user,user,user.addresses,user.addresses.town,user.agent,user.agent.agent,outbound.bank,outbound.mobile,outbound.cash&order=desc', [
                 'verify' => false,
                 'headers' => [
                     'Content-Type' => 'application/json',
@@ -1046,6 +1063,32 @@ class TransactionController extends Controller
                                     'json' => $infoTrans
                                 ]);
                                 $p = json_decode($p->getBody()->getContents(), true);
+                            } else if ($transaction['outbound']['cash'] !== null) {
+                                // AJOUT (2026-08-08) : Cash Pickup — get_quotation() calcule un
+                                // fxrate purement local (OutboundController::computeLocalQuotation),
+                                // sans dépendre du mode de livraison ; on réutilise donc le même
+                                // endpoint que Mobile.
+                                $infoTrans = [
+                                    'receiver_full_name' => trim($transaction['recipient_first_name'] . ' ' . $transaction['recipient_last_name']),
+                                    'receiver_phone' => trim($transaction['recipient_phone']),
+                                    'sender_phone' => $transaction['user']['phone_number'],
+                                    'amount' => $montant,
+                                    'receivingCurrency' => $transaction['to_currency'],
+                                    'requestCurrency' => 'XAF',
+                                    'sendingCurrency' => 'XAF',
+                                    'user_id' => $transaction['user']['id'],
+                                    'client_id' => (isset($partner)) ? $partner['client']['id'] : 0,
+                                    'partner' => $partnerChoice,
+                                ];
+                                $p = $client->post(config('keys.url_api') . 'get_quotation', [
+                                    'verify' => false,
+                                    'headers' => [
+                                        'Content-Type' => 'application/json',
+                                        'Authorization' => 'Bearer ' . $token
+                                    ],
+                                    'json' => $infoTrans
+                                ]);
+                                $p = json_decode($p->getBody()->getContents(), true);
                             }
                             // FIX (2026-07-04) : OutboundController::computeLocalQuotation()
                             // renvoie un objet PLAT ({quoteId, fxrate, convertedAmount, fees,
@@ -1123,7 +1166,7 @@ class TransactionController extends Controller
         $dwExtra = $request->session()->get('dw_extra_' . $id, []);
         try {
             $client = new Client();
-            $transaction = $client->get(config('keys.url_api') . 'transactions/' . $id . '?_includes=sender,agent,sender.user,user,user.addresses,user.addresses.town,user.agent,user.agent.agent,outbound.bank,outbound.mobile&order=desc', [
+            $transaction = $client->get(config('keys.url_api') . 'transactions/' . $id . '?_includes=sender,agent,sender.user,user,user.addresses,user.addresses.town,user.agent,user.agent.agent,outbound.bank,outbound.mobile,outbound.cash&order=desc', [
                 'verify' => false,
                 'headers' => [
                     'Content-Type' => 'application/json',
@@ -1132,6 +1175,12 @@ class TransactionController extends Controller
             ]);
             $transaction = json_decode($transaction->getBody()->getContents(), true);
             // dump($transaction);
+            // AJOUT (2026-08-08) : voir commentaire identique dans update() — Cash
+            // Pickup n'existe que chez DigitWace, on force le partenaire quel que
+            // soit ce qui a été mémorisé en session à l'étape 1.
+            if (isset($transaction['outbound']['cash']) && $transaction['outbound']['cash'] !== null) {
+                $partnerChoice = 'digitwace';
+            }
             $codeP = $transaction['receiving_country_code'];
             $partner = $client->get(config('keys.url_api') . 'get_partner?country_code=' . $codeP . '&partner=' . $partnerChoice, [
                 'verify' => false,
@@ -1264,6 +1313,48 @@ class TransactionController extends Controller
                                     'json' => $infoTrans
                                 ]);
                                 $p = json_decode($p->getBody()->getContents(), true);
+                            } else if ($transaction['outbound']['cash'] !== null) {
+                                // AJOUT (2026-08-08) : Cash Pickup — propre à DigitWace (voir
+                                // OutboundController::send_cash_transaction, qui rejette
+                                // explicitement toute autre valeur de 'partner'). Les champs
+                                // receiver_city/security_question/security_answer viennent
+                                // d'outbound.cash (saisis dès la création mobile, voir App\Cash) ;
+                                // les champs relation/origin_fund/reason/receiver_id_number/type
+                                // viennent de dw_extra comme pour Bank/Mobile ci-dessus.
+                                $infoTrans = [
+                                    'amount' => $request->get('montant'),
+                                    // FIX : envoyés explicitement (plutôt que le seul 'currency' utilisé par
+                                    // les branches Bank/Mobile ci-dessus, ambigu — voir OutboundController::
+                                    // send_cash_transaction qui distingue bien sendingCurrency/receivingCurrency).
+                                    'sendingCurrency' => 'XAF',
+                                    'receivingCurrency' => $transaction['to_currency'],
+                                    'receiver_first_name' => trim($transaction['recipient_first_name']),
+                                    'receiver_last_name' => trim($transaction['recipient_last_name']),
+                                    'receiver_phone' => trim($transaction['recipient_phone']),
+                                    'receiving_country' => $transaction['receiving_country_code'],
+                                    'receiver_city' => trim(@$transaction['outbound']['cash']['receiver_city']),
+                                    'security_question' => trim(@$transaction['outbound']['cash']['security_question']),
+                                    'security_answer' => trim(@$transaction['outbound']['cash']['security_answer']),
+                                    'user_id' => $transaction['user']['id'],
+                                    'sender_id' => $transaction['sender']['id'],
+                                    'reference' => $transaction['ranking'],
+                                    'track_id' => $transaction['ranking'] . '-' . uniqid(),
+                                    'partner' => $partnerChoice,
+                                    'receiver_id_number' => $dwExtra['receiver_id_number'] ?? '',
+                                    'receiver_id_type' => $dwExtra['receiver_id_type'] ?? 'PP',
+                                    'relation' => $dwExtra['relation'] ?? '',
+                                    'origin_fund' => $dwExtra['origin_fund'] ?? '',
+                                    'reason' => $dwExtra['reason'] ?? '',
+                                ];
+                                $p = $client->post(config('keys.url_api') . 'send_cash_transaction', [
+                                    'verify' => false,
+                                    'headers' => [
+                                        'Content-Type' => 'application/json',
+                                        'Authorization' => 'Bearer ' . $token
+                                    ],
+                                    'json' => $infoTrans
+                                ]);
+                                $p = json_decode($p->getBody()->getContents(), true);
                             }
                             if (isset($p) && $p['status'] === 200) {
                                 // FIX (2026-07-06) : Peex renvoie l'objet sous la clé "request"
@@ -1371,7 +1462,7 @@ class TransactionController extends Controller
         $transaction = null;
         try {
             $client = new Client();
-            $transaction = $client->get(config('keys.url_api') . 'transactions/' . $id . '?_includes=sender,agent,sender.user,user,user.agent,outbound.bank,outbound.mobile', [
+            $transaction = $client->get(config('keys.url_api') . 'transactions/' . $id . '?_includes=sender,agent,sender.user,user,user.agent,outbound.bank,outbound.mobile,outbound.cash', [
                 'verify' => false,
                 'headers' => [
                     'Content-Type' => 'application/json',
@@ -1689,7 +1780,7 @@ class TransactionController extends Controller
         $admin = null;
         try {
             $client = new Client();
-            $transaction = $client->get(config('keys.url_api') . 'transactions/' . $id . '?_includes=sender,sender.user,user,user.agent,outbound.bank,outbound.mobile', [
+            $transaction = $client->get(config('keys.url_api') . 'transactions/' . $id . '?_includes=sender,sender.user,user,user.agent,outbound.bank,outbound.mobile,outbound.cash', [
                 'verify' => false,
                 'headers' => [
                     'Content-Type' => 'application/json',
