@@ -195,7 +195,7 @@
             <tr><td class="label">Date</td><td class="value">{{ $transaction['created_at'] ? \Carbon\Carbon::parse($transaction['created_at'])->format('d/m/Y H:i') : '—' }}</td></tr>
             <tr><td class="label">Type de transaction</td><td class="value">
                 @if($isInternalReceipt)
-                    Retrait en espèces (réseau interne TholadPay)
+                    Retrait en espèces (réseau interne Send-Paz)
                 @else
                     {{ ($transaction['outbound']['bank'] ?? null) === null ? 'Mobile money' : 'Virement bancaire' }}
                 @endif
@@ -233,7 +233,7 @@
             <tr><td class="label">Téléphone</td><td class="value">{{ $transaction['recipient_phone'] ?? '—' }}</td></tr>
             <tr><td class="label">Pays</td><td class="value">{{ strtoupper($transaction['receiving_country'] ?? '') }}</td></tr>
             @if($isInternalReceipt)
-                <tr><td class="label">Mode de retrait</td><td class="value">Espèces, n'importe quelle agence TholadPay du pays</td></tr>
+                <tr><td class="label">Mode de retrait</td><td class="value">Espèces, n'importe quelle agence Send-Paz du pays</td></tr>
             @elseif(($transaction['outbound']['bank'] ?? null) !== null)
                 <tr><td class="label">Banque</td><td class="value">{{ $transaction['outbound']['bank']['organisation'] ?? '—' }}</td></tr>
                 <tr><td class="label">IBAN</td><td class="value">{{ $transaction['outbound']['bank']['bank_account_no'] ?? '—' }}</td></tr>

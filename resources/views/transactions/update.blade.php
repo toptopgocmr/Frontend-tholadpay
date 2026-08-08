@@ -74,7 +74,7 @@
                                                             {{-- AJOUT (2026-08-08) : transfert 100% interne (sans Peex ni DigitWace) —
                                                                  voir InternalTransferController. Le bénéficiaire retire en espèces avec
                                                                  un code, chez n'importe quel agent tholadpay du pays destinataire. --}}
-                                                            <option value="internal" {{ $isCashPickup ? 'disabled' : '' }} {{ (($partnerChoice ?? 'peex') === 'internal') ? 'selected' : '' }}>Interne (réseau tholadpay)</option>
+                                                            <option value="internal" {{ $isCashPickup ? 'disabled' : '' }} {{ (($partnerChoice ?? 'peex') === 'internal') ? 'selected' : '' }}>Interne (réseau Send-Paz)</option>
                                                         </select>
                                                         @if($isCashPickup)
                                                             <small class="text-muted">Retrait en espèces : disponible uniquement via DigitWace.</small>

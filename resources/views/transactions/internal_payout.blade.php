@@ -20,7 +20,7 @@
             <div class="page-title-box">
                 <div class="row align-items-center">
                     <div class="col-sm-6">
-                        <h4 class="page-title">Retrait interne (réseau TholadPay)</h4>
+                        <h4 class="page-title">Retrait interne (réseau Send-Paz)</h4>
                         <ol class="breadcrumb">
                             <li class="breadcrumb-item"><a href="{{ route('admin') }}"><i class="mdi mdi-home-outline"></i></a></li>
                             <li class="breadcrumb-item active">Retrait interne</li>
