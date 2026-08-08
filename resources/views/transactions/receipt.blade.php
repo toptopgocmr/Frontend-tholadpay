@@ -119,11 +119,36 @@
             color: #922b21;
             text-align: center;
         }
+        .receipt-verify {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 26px;
+            padding-top: 18px;
+            border-top: 1px dashed #ccc;
+        }
+        .qr-block {
+            text-align: center;
+        }
+        .qr-block img {
+            width: 110px;
+            height: 110px;
+            display: block;
+        }
+        .qr-block .qr-caption {
+            font-size: 10px;
+            color: #999;
+            margin-top: 4px;
+            letter-spacing: 0.5px;
+        }
+        .stamp {
+            transform: rotate(-9deg);
+            opacity: 0.88;
+        }
         .receipt-footer {
             text-align: center;
-            margin-top: 28px;
+            margin-top: 20px;
             padding-top: 14px;
-            border-top: 1px dashed #ccc;
             font-size: 12px;
             color: #999;
         }
@@ -250,6 +275,29 @@
                 <tr class="total"><td class="label">Montant total débité</td><td class="value">{{ number_format(($transaction['amount'] ?? 0) + ($transaction['frais_envoi'] ?? 0), 0, ',', ' ') }} {{ $transaction['from_currency'] ?? '' }}</td></tr>
                 <tr><td class="label">Montant reçu par le bénéficiaire</td><td class="value">{{ number_format($transaction['montant_beneficiaire'] ?? 0, 0, ',', ' ') }} {{ $transaction['to_currency'] ?? '' }}</td></tr>
             </table>
+        </div>
+
+        <div class="receipt-verify">
+            <div class="qr-block">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=130x130&data={{ urlencode($transaction['ranking'] ?? '') }}"
+                     alt="QR code de vérification">
+                <div class="qr-caption">Scanner pour vérifier<br>{{ $transaction['ranking'] ?? '' }}</div>
+            </div>
+            <svg class="stamp" viewBox="0 0 200 200" width="140" height="140" xmlns:xlink="http://www.w3.org/1999/xlink">
+                <defs>
+                    <path id="stampCirclePath" fill="none"
+                          d="M 100,100 m -78,0 a 78,78 0 1,1 156,0 a 78,78 0 1,1 -156,0" />
+                </defs>
+                <circle cx="100" cy="100" r="94" fill="none" stroke="#12709E" stroke-width="2.5"/>
+                <circle cx="100" cy="100" r="66" fill="none" stroke="#12709E" stroke-width="1.5"/>
+                <text font-size="13.5" font-weight="bold" fill="#12709E" letter-spacing="3">
+                    <textPath href="#stampCirclePath" xlink:href="#stampCirclePath" startOffset="1%">
+                        ★ SEND-PAZ ★ DIRECTION COMMERCIALE ★ SEND-PAZ ★ DIRECTION COMMERCIALE
+                    </textPath>
+                </text>
+                <text x="100" y="94" text-anchor="middle" font-size="24" font-weight="bold" fill="#12709E">SEND-PAZ</text>
+                <text x="100" y="116" text-anchor="middle" font-size="9.5" fill="#FF751F" letter-spacing="1.5">TRANSFERT D'ARGENT</text>
+            </svg>
         </div>
 
         <div class="receipt-footer">

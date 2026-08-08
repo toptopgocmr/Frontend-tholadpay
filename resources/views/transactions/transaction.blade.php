@@ -100,7 +100,8 @@
                                                          (Cash Pickup étiqueté à tort 'Mobile'), corrigé partout. --}}
                                                     @php
                                                         $ob = $transaction['outbound'] ?? null;
-                                                        if (!empty($ob['bank'])) { $typeLabel = 'Bancaire'; }
+                                                        if (($transaction['corridor_id'] ?? null) == 3) { $typeLabel = 'Interne'; }
+                                                        elseif (!empty($ob['bank'])) { $typeLabel = 'Bancaire'; }
                                                         elseif (!empty($ob['cash'])) { $typeLabel = 'Cash Pickup'; }
                                                         elseif (!empty($ob['mobile'])) { $typeLabel = 'Mobile'; }
                                                         else { $typeLabel = '—'; }

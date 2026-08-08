@@ -53,7 +53,11 @@
                                              ailleurs dans l'admin. --}}
                                         @php
                                             $ob = $transaction['outbound'] ?? null;
-                                            if (!empty($ob['bank'])) {
+                                            if (($transaction['corridor_id'] ?? null) == 3) {
+                                                $typeLabel = 'Interne';
+                                                $numLabel = 'Code de retrait';
+                                                $numValue = $transaction['internal_pickup_code'] ?? '—';
+                                            } elseif (!empty($ob['bank'])) {
                                                 $typeLabel = 'Bancaire';
                                                 $numLabel = 'Numéro Bancaire';
                                                 $numValue = $ob['bank']['bank_account_no'] ?? '—';
