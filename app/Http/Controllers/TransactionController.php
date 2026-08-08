@@ -15,6 +15,60 @@ class TransactionController extends Controller
 {
 
     /**
+     * AJOUT (2026-08-08) : sélectionne, dans le tableau brut renvoyé par Peex
+     * (all_requests / disbursement all_requests), l'entrée correspondant
+     * réellement au track_id interrogé.
+     *
+     * Investigation "aucun motif détaillé" (transaction REJECTED sans détail) :
+     * le code prenait jusqu'ici systématiquement $res[0] (le PREMIER élément du
+     * tableau), en supposant implicitement que le paramètre ?track_id= envoyé à
+     * Peex filtre déjà le résultat côté serveur. Rien dans le code ni dans les
+     * commentaires existants ne prouvait cette hypothèse — si Peex ignore ce
+     * paramètre (l'endpoint s'appelle "all_requests", pas "request/{track_id}")
+     * et renvoie systématiquement la liste complète des dernières transactions,
+     * $res[0] pouvait correspondre à une AUTRE transaction que celle affichée,
+     * avec un statut/message n'ayant rien à voir. On cherche désormais l'entrée
+     * dont track_id correspond exactement ; si aucune ne correspond (tableau
+     * réellement déjà filtré par Peex, ou track_id absent de la réponse), on
+     * retombe sur le comportement précédent ($res[0]) pour ne rien casser.
+     */
+    private function pickPeexEntry(array $res, $trackId)
+    {
+        if ($trackId) {
+            foreach ($res as $entry) {
+                if (is_array($entry) && isset($entry['track_id']) && (string) $entry['track_id'] === (string) $trackId) {
+                    return $entry;
+                }
+            }
+        }
+        return $res[0] ?? null;
+    }
+
+    /**
+     * AJOUT (2026-08-08) : construit le message de motif à partir de la réponse
+     * Peex en essayant plusieurs noms de champ possibles. La doc officielle
+     * (https://peex-api-docs.peexit.com/disbursement/all-request) documente
+     * "message", déjà lu depuis le 2026-07-28 — mais Peex peut très bien laisser
+     * ce champ vide/null pour un rejet donné (limitation réelle de leur API,
+     * pas un bug de lecture) tout en renseignant un détail sous un autre nom
+     * (reason/note/remarks/narration/description/comment) selon le type
+     * d'erreur. On essaie ces alternatives avant de conclure à une vraie
+     * absence de motif côté Peex, et on conserve la réponse brute complète
+     * dans les observations (au lieu de la perdre) pour permettre un diagnostic
+     * futur sans avoir à reproduire l'incident.
+     */
+    private function extractPeexMessage(array $peexTx): string
+    {
+        foreach (['message', 'reason', 'note', 'remarks', 'narration', 'description', 'comment', 'failure_reason'] as $key) {
+            $val = trim((string) ($peexTx[$key] ?? ''));
+            if ($val !== '') {
+                return $val;
+            }
+        }
+        return '';
+    }
+
+    /**
      * Handle an incoming request.
      *
      * @param Request $request
@@ -146,7 +200,7 @@ class TransactionController extends Controller
                     // HTTP 401/404/500) -> les transactions n'étaient donc jamais mises à
                     // jour automatiquement, quel que soit leur statut réel chez Peex.
                     $isBackendError = isset($res['status']) && isset($res['message']);
-                    $peexTx = (!$isBackendError && is_array($res) && isset($res[0])) ? $res[0] : null;
+                    $peexTx = (!$isBackendError && is_array($res)) ? $this->pickPeexEntry($res, $tr['reference']) : null;
                     $peexStatus = $peexTx['status'] ?? null;
 
                     if ($peexTx !== null && $peexStatus === 'paid') {
@@ -192,8 +246,8 @@ class TransactionController extends Controller
                             // {..., "status":"rejected", "message":"..."}), jusqu'ici jamais lu -> le
                             // motif exact d'un rejet n'était donc jamais visible en admin, seulement
                             // le mot "rejected" sans explication.
-                            $peexMessage = trim((string) ($peexTx['message'] ?? ''));
-                            $manage = 'Transaction ' . $partnerLabel . ' : statut "' . $peexStatus . '".' . ($peexMessage !== '' ? ' Motif : ' . $peexMessage : ' (' . $partnerLabel . ' n\'a fourni aucun motif détaillé.)');
+                            $peexMessage = $this->extractPeexMessage($peexTx);
+                            $manage = 'Transaction ' . $partnerLabel . ' : statut "' . $peexStatus . '".' . ($peexMessage !== '' ? ' Motif : ' . $peexMessage : ' (' . $partnerLabel . ' n\'a fourni aucun motif détaillé. Réponse brute : ' . json_encode($peexTx) . ')');
                             $maTrans = [
                                 'etat_transac' => 'failed',
                                 'date_complete' => @date('Y-m-d'),
@@ -1368,7 +1422,7 @@ class TransactionController extends Controller
             // en cas d'erreur backend. L'ancien code testait $res['status'] === 200/400,
             // ce qui ne correspondait à aucune de ces deux formes réelles (dead code).
             $isBackendError = isset($res['status']) && isset($res['message']);
-            $peexTx = (!$isBackendError && is_array($res) && isset($res[0])) ? $res[0] : null;
+            $peexTx = (!$isBackendError && is_array($res)) ? $this->pickPeexEntry($res, $transaction['reference']) : null;
             $peexStatus = $peexTx['status'] ?? null;
             $partnerLabel = $isDigitwaceTx ? 'DigitWace' : 'Peex';
 
@@ -1408,8 +1462,8 @@ class TransactionController extends Controller
             } else if ($peexTx !== null && in_array($peexStatus, ['failed', 'rejected', 'canceled'])) {
                 // FIX (2026-07-28) : voir commentaire identique dans index() — on remonte
                 // désormais le champ "message" de Peex pour afficher le vrai motif du rejet.
-                $peexMessage = trim((string) ($peexTx['message'] ?? ''));
-                $manage = 'Transaction ' . $partnerLabel . ' : statut "' . $peexStatus . '".' . ($peexMessage !== '' ? ' Motif : ' . $peexMessage : ' (' . $partnerLabel . ' n\'a fourni aucun motif détaillé.)');
+                $peexMessage = $this->extractPeexMessage($peexTx);
+                $manage = 'Transaction ' . $partnerLabel . ' : statut "' . $peexStatus . '".' . ($peexMessage !== '' ? ' Motif : ' . $peexMessage : ' (' . $partnerLabel . ' n\'a fourni aucun motif détaillé. Réponse brute : ' . json_encode($peexTx) . ')');
                 $maTrans = [
                     'etat_transac' => 'failed',
                     'date_complete' => @date('Y-m-d'),
