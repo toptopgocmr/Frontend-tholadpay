@@ -180,15 +180,29 @@
                                                     </div>
                                                 </div>
                                             </div>
+                                            {{-- FIX (2026-08-08) : voir transactions/index.blade.php — même bug. --}}
+                                            @php
+                                                $ob = $transaction['outbound'] ?? null;
+                                                if (!empty($ob['bank'])) {
+                                                    $numLabel = 'Numéro Bancaire';
+                                                    $numValue = $ob['bank']['bank_account_no'] ?? '';
+                                                } elseif (!empty($ob['cash'])) {
+                                                    $numLabel = 'Ville de retrait';
+                                                    $numValue = $ob['cash']['receiver_city'] ?? '';
+                                                } else {
+                                                    $numLabel = 'Téléphone';
+                                                    $numValue = $ob['mobile']['mobile_phone_credit'] ?? '';
+                                                }
+                                            @endphp
                                             <div class="col-4">
                                                 <div class="form-group row">
                                                     <label for="phoneB"
-                                                           class="col-4 col-form-label">{!! $transaction['outbound']['bank'] === null ? 'Téléphone' : 'Numéro Bancaire' !!}
+                                                           class="col-4 col-form-label">{{ $numLabel }}
                                                         <i
                                                                 class="red">*</i></label>
                                                     <div class="col-8">
                                                         <input type="text"
-                                                               value="{{$transaction['outbound']['bank'] === null ? $transaction['outbound']['mobile']['mobile_phone_credit'] : $transaction['outbound']['bank']['bank_account_no']}}"
+                                                               value="{{ $numValue }}"
                                                                class="form-control" required name="phoneB" id="phoneB">
                                                     </div>
                                                 </div>

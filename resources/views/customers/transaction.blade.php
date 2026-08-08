@@ -106,7 +106,23 @@
                                         <td>{{$trans['montant_beneficiaire']}} <span style="font-size: 10px">{{$trans['to_currency']}}</span></td>
                                         <td>{{$trans['fees']}} <span style="font-size: 10px">XAF</span></td>
                                         <td>{{strtoupper($trans['receiving_country'])}}</td>
-                                        <td>{!! $trans['outbound']['bank'] === null ? 'Mobile' : 'Bancaire' !!}</td>
+                                        {{-- FIX (2026-08-08) : voir transactions/index.blade.php — même bug
+                                             (Cash Pickup/interne étiquetés à tort 'Mobile'), corrigé partout. --}}
+                                        @php
+                                            $ob = $trans['outbound'] ?? null;
+                                            if (($trans['corridor_id'] ?? null) == 3) {
+                                                $typeLabel = 'Interne';
+                                            } elseif (!empty($ob['bank'])) {
+                                                $typeLabel = 'Bancaire';
+                                            } elseif (!empty($ob['cash'])) {
+                                                $typeLabel = 'Cash Pickup';
+                                            } elseif (!empty($ob['mobile'])) {
+                                                $typeLabel = 'Mobile';
+                                            } else {
+                                                $typeLabel = '—';
+                                            }
+                                        @endphp
+                                        <td>{{ $typeLabel }}</td>
                                         <td>{{$trans['etat_transac']}}</td>
                                         <td>
                                             <div class="btn-group mt-4 mt-md-0 button-items"

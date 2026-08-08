@@ -46,13 +46,38 @@
                                             <th>Numéro</th>
                                             <th>{{$transaction['ranking']}}</th>
                                         </tr>
+                                        {{-- FIX (2026-08-08) : l'ancien ternaire (outbound.bank null => 'Mobile',
+                                             puis lecture directe de outbound.mobile.mobile_phone_credit) plantait ou
+                                             affichait "Mobile" à tort pour un Cash Pickup (outbound.mobile est null
+                                             dans ce cas) — voir aussi transactions/index.blade.php pour le même bug
+                                             ailleurs dans l'admin. --}}
+                                        @php
+                                            $ob = $transaction['outbound'] ?? null;
+                                            if (!empty($ob['bank'])) {
+                                                $typeLabel = 'Bancaire';
+                                                $numLabel = 'Numéro Bancaire';
+                                                $numValue = $ob['bank']['bank_account_no'] ?? '—';
+                                            } elseif (!empty($ob['cash'])) {
+                                                $typeLabel = 'Cash Pickup';
+                                                $numLabel = 'Ville de retrait';
+                                                $numValue = $ob['cash']['receiver_city'] ?? '—';
+                                            } elseif (!empty($ob['mobile'])) {
+                                                $typeLabel = 'Mobile';
+                                                $numLabel = 'Numéro Téléphone';
+                                                $numValue = $ob['mobile']['mobile_phone_credit'] ?? '—';
+                                            } else {
+                                                $typeLabel = '—';
+                                                $numLabel = 'Numéro';
+                                                $numValue = '—';
+                                            }
+                                        @endphp
                                         <tr>
                                             <th>Type</th>
-                                            <th>{!! $transaction['outbound']['bank'] === null ? 'Mobile' : 'Bancaire' !!}</th>
+                                            <th>{{ $typeLabel }}</th>
                                         </tr>
                                         <tr>
-                                            <th>{!! $transaction['outbound']['bank'] === null ? 'Numéro Téléphone' : 'Numéro Bancaire' !!}</th>
-                                            <th>{{$transaction['outbound']['bank'] === null ? $transaction['outbound']['mobile']['mobile_phone_credit'] : $transaction['outbound']['bank']['bank_account_no']}}</th>
+                                            <th>{{ $numLabel }}</th>
+                                            <th>{{ $numValue }}</th>
                                         </tr>
                                         <tr>
                                             <th>Montant</th>

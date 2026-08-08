@@ -96,7 +96,16 @@
                                                 <div class="form-group row">
                                                     <label class="col-5 col-form-label">Type Transaction</label>
                                                     <label class="col-7 col-form-label" id="recapType" style="font-weight: bold">
-                                                    {!! $transaction['outbound']['bank'] === null ? 'Mobile' : 'Bancaire' !!}
+                                                    {{-- FIX (2026-08-08) : voir transactions/index.blade.php — même bug
+                                                         (Cash Pickup étiqueté à tort 'Mobile'), corrigé partout. --}}
+                                                    @php
+                                                        $ob = $transaction['outbound'] ?? null;
+                                                        if (!empty($ob['bank'])) { $typeLabel = 'Bancaire'; }
+                                                        elseif (!empty($ob['cash'])) { $typeLabel = 'Cash Pickup'; }
+                                                        elseif (!empty($ob['mobile'])) { $typeLabel = 'Mobile'; }
+                                                        else { $typeLabel = '—'; }
+                                                    @endphp
+                                                    {{ $typeLabel }}
                                                     </label>
                                                 </div>
                                             </div>

@@ -143,7 +143,27 @@
                                         <td>{{$trans['montant_beneficiaire']}}  <span style="font-size: 10px">({{$trans['to_currency']}})</span></td>
                                         <td>{{$trans['fees']}}</td>
                                         <td>{{strtoupper($trans['receiving_country'])}}</td>
-                                        <td>{!! $trans['outbound']['bank'] === null ? 'Mobile' : 'Bancaire' !!}</td>
+                                        {{-- FIX (2026-08-08) : ce ternaire (outbound.bank null => 'Mobile') datait
+                                             d'avant l'ajout de Cash Pickup (DigitWace) et des transferts internes —
+                                             il étiquetait donc à tort tout Cash Pickup ou transfert interne comme
+                                             'Mobile'. Voir aussi home.blade.php, customers/*, users/show.blade.php,
+                                             transactions/show.blade.php, transactions/transaction.blade.php (même bug
+                                             corrigé partout). --}}
+                                        @php
+                                            $ob = $trans['outbound'] ?? null;
+                                            if (($trans['corridor_id'] ?? null) == 3) {
+                                                $typeLabel = 'Interne';
+                                            } elseif (!empty($ob['bank'])) {
+                                                $typeLabel = 'Bancaire';
+                                            } elseif (!empty($ob['cash'])) {
+                                                $typeLabel = 'Cash Pickup';
+                                            } elseif (!empty($ob['mobile'])) {
+                                                $typeLabel = 'Mobile';
+                                            } else {
+                                                $typeLabel = '—';
+                                            }
+                                        @endphp
+                                        <td>{{ $typeLabel }}</td>
                                         <td>{{ $trans['created_at'] !== null ? @formaterdateTime($trans['created_at']) : '' }}</td>
                                         
                                         <td>

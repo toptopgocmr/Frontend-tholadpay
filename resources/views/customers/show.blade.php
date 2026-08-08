@@ -244,7 +244,23 @@
                                         </tr>
                                         @forelse($transactions as $trn)
                                             <tr>
-                                                <td>{!! $trn['outbound']['bank'] === null ? 'Mobile' : 'Bancaire' !!}</td>
+                                                {{-- FIX (2026-08-08) : voir transactions/index.blade.php — même bug
+                                                     (Cash Pickup/interne étiquetés à tort 'Mobile'), corrigé partout. --}}
+                                                @php
+                                                    $ob = $trn['outbound'] ?? null;
+                                                    if (($trn['corridor_id'] ?? null) == 3) {
+                                                        $typeLabel = 'Interne';
+                                                    } elseif (!empty($ob['bank'])) {
+                                                        $typeLabel = 'Bancaire';
+                                                    } elseif (!empty($ob['cash'])) {
+                                                        $typeLabel = 'Cash Pickup';
+                                                    } elseif (!empty($ob['mobile'])) {
+                                                        $typeLabel = 'Mobile';
+                                                    } else {
+                                                        $typeLabel = '—';
+                                                    }
+                                                @endphp
+                                                <td>{{ $typeLabel }}</td>
                                                 <td>{{ strtoupper($trn['sender']['user']['first_name']) }} {{ ucwords($trn['sender']['user']['last_name']) }}</td>
                                                 <td>{{ strtoupper($trn['recipient_first_name']) }} {{ ucwords($trn['recipient_last_name']) }}</td>
                                                 <td>{{ $trn['amount'] }} XAF</td>
