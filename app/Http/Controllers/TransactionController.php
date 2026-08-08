@@ -1433,6 +1433,26 @@ class TransactionController extends Controller
                                 ]);
                                 $resSend = json_decode($resSend->getBody()->getContents(), true);
 
+                                // AJOUT (2026-08-08) : DigitWace exige un appel /transaction/confirm
+                                // après la création (voir OutboundController::confirmDigitwaceTransaction) —
+                                // sans lui, la transaction reste bloquée en "WAITING CONFIRMATION" chez
+                                // DigitWace et n'est jamais réellement payée. send_transaction/
+                                // send_bank_transaction/send_cash_transaction tentent désormais cette
+                                // confirmation automatiquement (avec 1 retry), mais si elle échoue quand
+                                // même, on l'affiche clairement ici plutôt que de laisser croire que tout
+                                // est réglé.
+                                if (($p['confirm_status'] ?? null) === 'failed') {
+                                    // NB : confirm_status n'existe que sur les réponses DigitWace (voir
+                                    // OutboundController::confirmDigitwaceTransaction) — $partnerLabel n'est
+                                    // pas défini dans cette méthode (contrairement à index()/
+                                    // checkStatusOfTransaction()), mais ce cas ne peut de toute façon se
+                                    // produire que pour ce partenaire.
+                                    return redirect()->route('transaction_list')->with('error',
+                                        'Transaction créée chez DigitWace mais NON CONFIRMÉE ('
+                                        . ($p['confirm_message'] ?? 'raison inconnue')
+                                        . '). Référence : ' . ($p['reference'] ?? $transaction['ranking'])
+                                        . '. Contactez le support DigitWace pour confirmer manuellement.');
+                                }
                                 return redirect()->route('transaction_list')->with('success', 'Paiement effectué avec succes! Verifiez le status !');
                             } else {
                                 // FIX : idem — $p['message'] est déjà du texte brut, plus de JSON imbriqué à extraire.
