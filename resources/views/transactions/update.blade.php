@@ -81,7 +81,7 @@
                                                     <div class="form-group row">
                                                         <label for="receiver_id_number" class="col-4 col-form-label">N° pièce bénéficiaire</label>
                                                         <div class="col-8">
-                                                            <input type="text" class="form-control" name="receiver_id_number" id="receiver_id_number">
+                                                            <input type="text" class="form-control" name="receiver_id_number" id="receiver_id_number" value="{{ $transaction['receiver_id_number'] ?? '' }}">
                                                         </div>
                                                     </div>
                                                 </div>
@@ -90,8 +90,8 @@
                                                         <label for="receiver_id_type" class="col-4 col-form-label">Type de pièce</label>
                                                         <div class="col-8">
                                                             <select class="form-control" name="receiver_id_type" id="receiver_id_type">
-                                                                <option value="PP">Passeport</option>
-                                                                <option value="CNI">Carte Nationale d'Identité</option>
+                                                                <option value="PP" {{ (($transaction['receiver_id_type'] ?? 'PP') === 'PP') ? 'selected' : '' }}>Passeport</option>
+                                                                <option value="CNI" {{ (($transaction['receiver_id_type'] ?? '') === 'CNI') ? 'selected' : '' }}>Carte Nationale d'Identité</option>
                                                             </select>
                                                         </div>
                                                     </div>
@@ -100,7 +100,7 @@
                                                     <div class="form-group row">
                                                         <label for="relation" class="col-4 col-form-label">Relation avec le bénéficiaire</label>
                                                         <div class="col-8">
-                                                            <input type="text" class="form-control" name="relation" id="relation" list="dwRelations" placeholder="Ex: Brother, Sister, Self...">
+                                                            <input type="text" class="form-control" name="relation" id="relation" list="dwRelations" placeholder="Ex: Brother, Sister, Self..." value="{{ $transaction['receiver_relation'] ?? '' }}">
                                                             <datalist id="dwRelations">
                                                                 <option value="Self"><option value="Spouse"><option value="Wife"><option value="Husband">
                                                                 <option value="Brother"><option value="Sister"><option value="Mother"><option value="Father">
