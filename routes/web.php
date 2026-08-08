@@ -41,6 +41,8 @@ Route::match(array('GET','POST'), 'admin/transactions/{id}/notes', [ 'middleware
 // code de retrait donné par le bénéficiaire (voir InternalTransferController
 // côté backend), vérifie le montant/nom, puis confirme le paiement.
 Route::match(array('GET','POST'), 'admin/retraits-internes', [ 'middleware' => ['all', 'cors'], 'uses' => 'TransactionController@payoutInternal', 'as' => 'internal_payout' ]);
+// AJOUT (2026-08-08) : export CSV (mêmes filtres que l'écran) — voir TransactionController::payoutInternalExport.
+Route::get('admin/retraits-internes/export', [ 'middleware' => ['all', 'cors'], 'uses' => 'TransactionController@payoutInternalExport', 'as' => 'internal_payout_export' ]);
 
 Route::match(array('GET','POST'), 'admin/transactions/validate', [ 'middleware' => ['all'], 'uses' => 'TransactionController@validateTransaction', 'as' => 'transaction_validate' ]);
 Route::match(array('GET','POST'), 'admin/transactions/cancel', [ 'middleware' => ['all'], 'uses' => 'TransactionController@delete', 'as' => 'transaction_delete' ]);

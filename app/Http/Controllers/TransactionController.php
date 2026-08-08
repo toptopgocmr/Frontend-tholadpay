@@ -631,7 +631,15 @@ class TransactionController extends Controller
             // voient tout, les autres (agent/cashier) doivent être rattachés au même
             // agent que celui propriétaire de la transaction (transaction.agent_id).
             $fullAccessRoles = ['administrator', 'csa', 'finance_manager', 'technical_support'];
-            if (!in_array($role, $fullAccessRoles)) {
+            // AJOUT (2026-08-08) : les transferts internes (corridor_id=3) sont
+            // consultés/imprimés par l'agence PAYEUSE depuis l'écran "Retrait interne"
+            // — par construction, ce n'est jamais l'agence qui a envoyé (règle
+            // anti-fraude ajoutée le même jour, voir InternalTransferController::
+            // isSameSendingAgency côté backend). La restriction "même agent_id que
+            // l'expéditeur" ci-dessous bloquerait donc systématiquement ces rôles ;
+            // on l'exempte pour ce corridor.
+            $isInternalTransfer = (string) ($transaction['corridor_id'] ?? '') === '3';
+            if (!in_array($role, $fullAccessRoles) && !$isInternalTransfer) {
                 $agentScope = $agent;
                 if ($agentScope !== null && isset($agentScope['agent']) && $agentScope['agent'] !== null) {
                     $agentScope = $agentScope['agent'];
@@ -671,7 +679,15 @@ class TransactionController extends Controller
             $transaction = json_decode($response->getBody()->getContents(), true);
 
             $fullAccessRoles = ['administrator', 'csa', 'finance_manager', 'technical_support'];
-            if (!in_array($role, $fullAccessRoles)) {
+            // AJOUT (2026-08-08) : les transferts internes (corridor_id=3) sont
+            // consultés/imprimés par l'agence PAYEUSE depuis l'écran "Retrait interne"
+            // — par construction, ce n'est jamais l'agence qui a envoyé (règle
+            // anti-fraude ajoutée le même jour, voir InternalTransferController::
+            // isSameSendingAgency côté backend). La restriction "même agent_id que
+            // l'expéditeur" ci-dessous bloquerait donc systématiquement ces rôles ;
+            // on l'exempte pour ce corridor.
+            $isInternalTransfer = (string) ($transaction['corridor_id'] ?? '') === '3';
+            if (!in_array($role, $fullAccessRoles) && !$isInternalTransfer) {
                 $agentScope = $agent;
                 if ($agentScope !== null && isset($agentScope['agent']) && $agentScope['agent'] !== null) {
                     $agentScope = $agentScope['agent'];
@@ -1908,6 +1924,114 @@ class TransactionController extends Controller
      * backend affiche juste un avertissement non-bloquant si le pays de
      * l'agent diffère du pays destinataire.
      */
+    /**
+     * Construit la requête de filtrage des transferts internes (corridor_id=3)
+     * partagée entre payoutInternal() (liste paginée) et payoutInternalExport()
+     * (export CSV complet, mêmes filtres, pas de pagination) — voir demande
+     * utilisateur du 2026-08-08 ("mettre la date de à pour la recherche sur
+     * une période, faire l'extraction de la liste en Excel").
+     */
+    private function internalTransferListQuery(Request $request): array
+    {
+        $filters = [
+            'code' => trim((string) $request->get('f_code')),
+            'date_from' => trim((string) $request->get('f_date_from')),
+            'date_to' => trim((string) $request->get('f_date_to')),
+            'agency' => trim((string) $request->get('f_agency')),
+            'status' => trim((string) $request->get('f_status')),
+        ];
+
+        $query = [
+            'corridor_id' => 3,
+            '_includes' => 'user,agent,agent.country',
+            '_sort' => 'created_at',
+            '_sortDir' => 'desc',
+        ];
+        if ($filters['code'] !== '') {
+            $query['internal_pickup_code-lk'] = $filters['code'];
+        }
+        if ($filters['date_from'] !== '' && $filters['date_to'] !== '') {
+            // whereBetween sur un timestamp : on inclut toute la journée de fin,
+            // sinon "23:59:59" implicite à "00:00:00" exclurait les transactions
+            // du dernier jour.
+            $query['created_at-bt'] = $filters['date_from'] . ',' . $filters['date_to'] . ' 23:59:59';
+        } elseif ($filters['date_from'] !== '') {
+            $query['created_at-get'] = $filters['date_from'] . ' 00:00:00';
+        } elseif ($filters['date_to'] !== '') {
+            $query['created_at-let'] = $filters['date_to'] . ' 23:59:59';
+        }
+        if ($filters['agency'] !== '') {
+            $query['agent-fk'] = 'nom_commercial-lk=' . $filters['agency'];
+        }
+        if ($filters['status'] !== '') {
+            $query['etat_transac'] = $filters['status'];
+        }
+
+        return [$filters, $query];
+    }
+
+    /**
+     * AJOUT (2026-08-08) : export CSV (ouvrable dans Excel — aucune librairie
+     * Excel n'est installée dans cette app, voir composer.json) de la liste des
+     * transferts internes, avec les mêmes filtres que l'écran.
+     */
+    public function payoutInternalExport(Request $request)
+    {
+        $token = $request->session()->get('token');
+        [, $listQuery] = $this->internalTransferListQuery($request);
+        $listQuery['should_paginate'] = 'false';
+        $listQuery['per_page'] = 10000;
+
+        $client = new Client();
+        try {
+            $res = $client->get(config('keys.url_api') . 'transactions', [
+                'verify' => false,
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Authorization' => 'Bearer ' . $token
+                ],
+                'query' => $listQuery
+            ]);
+            $rows = json_decode($res->getBody()->getContents(), true) ?: [];
+        } catch (\Exception $e) {
+            $rows = [];
+        }
+
+        $filename = 'transferts-internes-' . date('Y-m-d-His') . '.csv';
+        $callback = function () use ($rows) {
+            $out = fopen('php://output', 'w');
+            // BOM UTF-8 : Excel (Windows) affiche sinon les accents mal encodés.
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['Statut', 'Référence', 'Code de retrait', 'Bénéficiaire', 'Téléphone bénéficiaire',
+                'Montant', 'Devise', 'Pays', 'Agence expéditrice', 'Pays expéditeur', 'Expéditeur',
+                'Envoyé le', 'Consulté le'], ';');
+            foreach ($rows as $tx) {
+                $statutLabels = ['AwaitingPickup' => 'En attente', 'success' => 'Payé', 'Rejected' => 'Rejeté'];
+                fputcsv($out, [
+                    $statutLabels[$tx['etat_transac'] ?? ''] ?? ($tx['etat_transac'] ?? ''),
+                    $tx['ranking'] ?? '',
+                    $tx['internal_pickup_code'] ?? '',
+                    trim((($tx['recipient_first_name'] ?? '') . ' ' . ($tx['recipient_last_name'] ?? ''))),
+                    $tx['recipient_phone'] ?? '',
+                    $tx['montant_beneficiaire'] ?? '',
+                    $tx['to_currency'] ?? '',
+                    $tx['receiving_country'] ?? '',
+                    $tx['agent']['nom_commercial'] ?? '',
+                    $tx['agent']['country']['name'] ?? '',
+                    trim((($tx['user']['first_name'] ?? '') . ' ' . ($tx['user']['last_name'] ?? ''))),
+                    $tx['created_at'] ?? '',
+                    $tx['beneficiary_checked_in_at'] ?? '',
+                ], ';');
+            }
+            fclose($out);
+        };
+
+        return response()->stream($callback, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
     public function payoutInternal(Request $request)
     {
         $token = $request->session()->get('token');
@@ -1954,32 +2078,15 @@ class TransactionController extends Controller
         // date, nom de l'agence etc." Remplace l'ancienne liste limitée aux seuls
         // retraits déjà "consultés" par leur bénéficiaire (celle-ci reste visible :
         // colonne "Consulté le", triable/filtrable comme le reste).
-        $filterCode = trim((string) $request->get('f_code'));
-        $filterDate = trim((string) $request->get('f_date'));
-        $filterAgency = trim((string) $request->get('f_agency'));
-        $filterStatus = trim((string) $request->get('f_status'));
         $listPage = max(1, (int) ($request->get('list_page') ?: 1));
-
-        $listQuery = [
-            'corridor_id' => 3,
-            '_includes' => 'user,agent,agent.country',
-            '_sort' => 'created_at',
-            '_sortDir' => 'desc',
-            'per_page' => 30,
-            'page' => $listPage,
-        ];
-        if ($filterCode !== '') {
-            $listQuery['internal_pickup_code-lk'] = $filterCode;
-        }
-        if ($filterDate !== '') {
-            $listQuery['created_at'] = $filterDate;
-        }
-        if ($filterAgency !== '') {
-            $listQuery['agent-fk'] = 'nom_commercial-lk=' . $filterAgency;
-        }
-        if ($filterStatus !== '') {
-            $listQuery['etat_transac'] = $filterStatus;
-        }
+        [$filters, $listQuery] = $this->internalTransferListQuery($request);
+        $filterCode = $filters['code'];
+        $filterDateFrom = $filters['date_from'];
+        $filterDateTo = $filters['date_to'];
+        $filterAgency = $filters['agency'];
+        $filterStatus = $filters['status'];
+        $listQuery['per_page'] = 30;
+        $listQuery['page'] = $listPage;
 
         $pendingList = [];
         $listMeta = ['total' => 0, 'current_page' => 1, 'last_page' => 1];
@@ -2105,6 +2212,6 @@ class TransactionController extends Controller
             }
         }
 
-        return view('transactions.internal_payout', compact('token', 'role', 'user', 'menu', 'step', 'lookup', 'pickupCode', 'needsAgentPicker', 'agentsList', 'payerAgentId', 'pendingList', 'listMeta', 'filterCode', 'filterDate', 'filterAgency', 'filterStatus'));
+        return view('transactions.internal_payout', compact('token', 'role', 'user', 'menu', 'step', 'lookup', 'pickupCode', 'needsAgentPicker', 'agentsList', 'payerAgentId', 'pendingList', 'listMeta', 'filterCode', 'filterDateFrom', 'filterDateTo', 'filterAgency', 'filterStatus'));
     }
 }

@@ -78,15 +78,19 @@
 
                                 <form action="{{ route('internal_payout') }}" method="get" class="form-horizontal mb-3">
                                     <div class="form-row align-items-end">
-                                        <div class="form-group col-md-3">
+                                        <div class="form-group col-md-2">
                                             <label for="f_code">Code de retrait</label>
                                             <input type="text" class="form-control text-uppercase" name="f_code" id="f_code" value="{{ $filterCode }}" placeholder="XXXX-XXXX">
                                         </div>
                                         <div class="form-group col-md-2">
-                                            <label for="f_date">Date d'envoi</label>
-                                            <input type="date" class="form-control" name="f_date" id="f_date" value="{{ $filterDate }}">
+                                            <label for="f_date_from">Date d'envoi de</label>
+                                            <input type="date" class="form-control" name="f_date_from" id="f_date_from" value="{{ $filterDateFrom }}">
                                         </div>
-                                        <div class="form-group col-md-3">
+                                        <div class="form-group col-md-2">
+                                            <label for="f_date_to">à</label>
+                                            <input type="date" class="form-control" name="f_date_to" id="f_date_to" value="{{ $filterDateTo }}">
+                                        </div>
+                                        <div class="form-group col-md-2">
                                             <label for="f_agency">Agence expéditrice</label>
                                             <input type="text" class="form-control" name="f_agency" id="f_agency" value="{{ $filterAgency }}" placeholder="Nom de l'agence">
                                         </div>
@@ -105,9 +109,16 @@
                                             </button>
                                         </div>
                                     </div>
-                                    @if ($filterCode || $filterDate || $filterAgency || $filterStatus)
-                                        <a href="{{ route('internal_payout') }}" class="small">Réinitialiser les filtres</a>
-                                    @endif
+                                    <div>
+                                        @if ($filterCode || $filterDateFrom || $filterDateTo || $filterAgency || $filterStatus)
+                                            <a href="{{ route('internal_payout') }}" class="small">Réinitialiser les filtres</a> &middot;
+                                        @endif
+                                        {{-- AJOUT (2026-08-08) : export CSV (ouvrable dans Excel) de la liste
+                                             filtrée — voir TransactionController::payoutInternalExport. --}}
+                                        <a href="{{ route('internal_payout_export', request()->query()) }}" class="small">
+                                            <i class="mdi mdi-file-excel-outline mr-1"></i>Exporter en Excel (CSV)
+                                        </a>
+                                    </div>
                                 </form>
 
                                 @if (count($pendingList) === 0)
@@ -160,6 +171,17 @@
                                                                     </button>
                                                                 </form>
                                                             @endif
+                                                            {{-- AJOUT (2026-08-08) : voir/imprimer le reçu — demande utilisateur
+                                                                 du 2026-08-08. TransactionController::show()/receipt() ont dû
+                                                                 être ajustés pour autoriser tout agent sur un transfert interne
+                                                                 (par construction, l'agence qui paie n'est jamais celle qui a
+                                                                 envoyé, voir la règle anti-fraude ajoutée le même jour). --}}
+                                                            <a href="{{ route('transaction_show', $tx['id']) }}" title="Détails" class="btn btn-sm btn-info waves-effect">
+                                                                <i class="mdi mdi-information-variant"></i>
+                                                            </a>
+                                                            <a href="{{ route('transaction_receipt', $tx['id']) }}" title="Reçu" target="_blank" class="btn btn-sm btn-secondary waves-effect">
+                                                                <i class="mdi mdi-printer"></i>
+                                                            </a>
                                                         </td>
                                                     </tr>
                                                 @endforeach
