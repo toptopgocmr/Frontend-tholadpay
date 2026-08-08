@@ -227,11 +227,11 @@ class TransactionController extends Controller
                         $trans = json_decode($trans->getBody()->getContents(), true);
                         if ($maTrans['payer'] === 1) {
                             $phone_sender =  $tr['user']['phone_number'];
-                            $txtFrom = "TholadPay";
+                            $txtFrom = "Send-Paz";
                             $successSMS = [
                                 "from" =>  $txtFrom,
                                 "to" =>  $phone_sender,
-                                "text" =>  "Cher(e) client(e), votre transaction TholadPay N° " . $tr['ranking'] . " vers " . $tr['receiving_country'] . " a été effectuée avec succès. TholadPay vous remercie."
+                                "text" =>  "Cher(e) client(e), votre transaction Send-Paz N° " . $tr['ranking'] . " vers " . $tr['receiving_country'] . " a été effectuée avec succès. Send-Paz vous remercie."
                             ];
                             $resSend = $client->post(config('keys.url_api') . 'auth/send_sms_to_phone', [
                                 'verify' => false,
@@ -292,11 +292,11 @@ class TransactionController extends Controller
                                 $agen = json_decode($agen->getBody()->getContents(), true);
                                 // dump('Agent modifier ', $agen);
                                 $phone_sender =  $tr['user']['phone_number'];
-                                $txtFrom = "THOLADPAY";
+                                $txtFrom = "Send-Paz";
                                 $rejectedSMS = [
                                     "from" =>  $txtFrom,
                                     "to" =>  $phone_sender,
-                                    "text" =>  "Cher(e) client(e), votre transaction TholadPay N° " . $tr['ranking'] . " vers " . $tr['receiving_country'] . " a été rejetée. Prière de vous rapprocher de TholadPay pour plus de détails."
+                                    "text" =>  "Cher(e) client(e), votre transaction Send-Paz N° " . $tr['ranking'] . " vers " . $tr['receiving_country'] . " a été rejetée. Prière de vous rapprocher de Send-Paz pour plus de détails."
                                 ];
                                 $resSend = $client->post(config('keys.url_api') . 'auth/send_sms_to_phone', [
                                     'verify' => false,
@@ -746,14 +746,18 @@ class TransactionController extends Controller
             ]);
             $transaction = json_decode($transaction->getBody()->getContents(), true);
             // dump($transaction);
-            // AJOUT (2026-08-08) : Cash Pickup (retrait en espèces) — 3e mode de
-            // livraison, saisi dès la création mobile (voir Cash/outbound.cash),
-            // propre à DigitWace : Peex ne le propose pas du tout. On force donc le
-            // partenaire ici, quel que soit le choix (ou l'absence de choix) fait
-            // dans le menu déroulant — impossible d'envoyer cette transaction via
-            // Peex, même si l'agent le sélectionne par erreur.
+            // Cash Pickup (retrait en espèces) — 3e mode de livraison, saisi dès la
+            // création mobile (voir Cash/outbound.cash). Peex ne le propose pas du
+            // tout : on force donc DigitWace si jamais Peex a été choisi (ou rien
+            // n'a été choisi) pour ce type de transaction.
+            // FIX (2026-08-08) : ce forçage écrasait AUSSI un choix explicite
+            // 'internal' — rendant impossible tout retrait interne (réseau
+            // Send-Paz, sans partenaire externe) pour une transaction Cash Pickup,
+            // alors que le réseau interne fonctionne quel que soit le type de
+            // compte choisi à la création (voir InternalTransferController). On
+            // ne force plus DigitWace que si le choix n'est pas déjà 'internal'.
             $isCashPickup = isset($transaction['outbound']['cash']) && $transaction['outbound']['cash'] !== null;
-            if ($isCashPickup) {
+            if ($isCashPickup && $partnerChoice !== 'internal') {
                 $partnerChoice = 'digitwace';
             }
             if ($transaction['transaction_status'] === 'waiting') {
@@ -1198,10 +1202,11 @@ class TransactionController extends Controller
             ]);
             $transaction = json_decode($transaction->getBody()->getContents(), true);
             // dump($transaction);
-            // AJOUT (2026-08-08) : voir commentaire identique dans update() — Cash
-            // Pickup n'existe que chez DigitWace, on force le partenaire quel que
-            // soit ce qui a été mémorisé en session à l'étape 1.
-            if (isset($transaction['outbound']['cash']) && $transaction['outbound']['cash'] !== null) {
+            // Voir commentaire identique et détaillé dans update() — Cash Pickup
+            // n'existe pas chez Peex, on force DigitWace SAUF si 'internal' a été
+            // explicitement mémorisé en session à l'étape 1 (réseau interne
+            // Send-Paz, valable pour tout type de compte).
+            if (isset($transaction['outbound']['cash']) && $transaction['outbound']['cash'] !== null && $partnerChoice !== 'internal') {
                 $partnerChoice = 'digitwace';
             }
             $codeP = $transaction['receiving_country_code'];
@@ -1465,7 +1470,7 @@ class TransactionController extends Controller
 
                                 $phone_sender =  $transaction['user']['phone_number'];
                                 $phone_receive = $transaction['recipient_phone'];
-                                $txtFrom = "THOLADPAY";
+                                $txtFrom = "Send-Paz";
                                 $pickupCode = $tran2Update['internal_pickup_code'] ?? null;
 
                                 // AJOUT (2026-08-08) : pour un transfert interne, le SMS générique
@@ -1479,13 +1484,13 @@ class TransactionController extends Controller
                                     $successSMS = [
                                         "from" =>  $txtFrom,
                                         "to" =>  $phone_sender,
-                                        "text" =>  "Cher(e) client(e), votre transaction TholadPay N° " . $transaction['ranking'] . " de " . $transaction['amount'] . " FCFA vers " . $transaction['receiving_country'] . " a été validée. Code de retrait : " . $pickupCode . ". Communiquez ce code au bénéficiaire pour le retrait. TholadPay vous remercie."
+                                        "text" =>  "Cher(e) client(e), votre transaction Send-Paz N° " . $transaction['ranking'] . " de " . $transaction['amount'] . " FCFA vers " . $transaction['receiving_country'] . " a été validée. Code de retrait : " . $pickupCode . ". Communiquez ce code au bénéficiaire pour le retrait. Send-Paz vous remercie."
                                     ];
                                 } else {
                                     $successSMS = [
                                         "from" =>  $txtFrom,
                                         "to" =>  $phone_sender,
-                                        "text" =>  "Cher(e) client(e), votre transaction TholadPay N° " . $transaction['ranking'] . " de " . $transaction['amount'] . " FCFA vers " . $transaction['receiving_country'] . " Votre opération est en cours de traitement. TholadPay vous remercie."
+                                        "text" =>  "Cher(e) client(e), votre transaction Send-Paz N° " . $transaction['ranking'] . " de " . $transaction['amount'] . " FCFA vers " . $transaction['receiving_country'] . " Votre opération est en cours de traitement. Send-Paz vous remercie."
                                     ];
                                 }
                                 $resSend = $client->post(config('keys.url_api') . 'auth/send_sms_to_phone', [
@@ -1501,7 +1506,7 @@ class TransactionController extends Controller
                                     $beneficiarySMS = [
                                         "from" =>  $txtFrom,
                                         "to" =>  $phone_receive,
-                                        "text" =>  "Vous avez un transfert TholadPay de " . ($transaction['montant_beneficiaire'] ?? $transaction['amount']) . " à retirer. Code de retrait : " . $pickupCode . ". Présentez ce code et une pièce d'identité dans n'importe quelle agence TholadPay au " . $transaction['receiving_country'] . "."
+                                        "text" =>  "Vous avez un transfert Send-Paz de " . ($transaction['montant_beneficiaire'] ?? $transaction['amount']) . " à retirer. Code de retrait : " . $pickupCode . ". Présentez ce code et une pièce d'identité dans n'importe quelle agence Send-Paz au " . $transaction['receiving_country'] . "."
                                     ];
                                     $resSendBenef = $client->post(config('keys.url_api') . 'auth/send_sms_to_phone', [
                                         'verify' => false,
@@ -1640,11 +1645,11 @@ class TransactionController extends Controller
                 ]);
                 $trans = json_decode($trans->getBody()->getContents(), true);
                 $phone_sender =  $transaction['user']['phone_number'];
-                $txtFrom = "THOLADPAY";
+                $txtFrom = "Send-Paz";
                 $successSMS = [
                     "from" =>  $txtFrom,
                     "to" =>  $phone_sender,
-                    "text" =>  "Cher(e) client(e), votre transaction TholadPay N° " . $transaction['ranking'] . " vers " . $transaction['receiving_country'] . " a été effectuée avec succès. THOLADPay vous remercie."
+                    "text" =>  "Cher(e) client(e), votre transaction Send-Paz N° " . $transaction['ranking'] . " vers " . $transaction['receiving_country'] . " a été effectuée avec succès. Send-Paz vous remercie."
                 ];
                 $resSend = $client->post(config('keys.url_api') . 'auth/send_sms_to_phone', [
                     'verify' => false,
@@ -1699,11 +1704,11 @@ class TransactionController extends Controller
                     $agen = json_decode($agen->getBody()->getContents(), true);
                     // dump('Agent modifier ', $agen);
                     $phone_sender =  $transaction['user']['phone_number'];
-                    $txtFrom = "THOLADPAY";
+                    $txtFrom = "Send-Paz";
                     $rejectedSMS = [
                         "from" =>  $txtFrom,
                         "to" =>  $phone_sender,
-                        "text" =>  "Cher(e) client(e), votre transaction TholadPay N° " . $transaction['ranking'] . " vers " . $transaction['receiving_country'] . " a été rejetée. Prière de vous rapprocher de TholadPay pour plus de détails."
+                        "text" =>  "Cher(e) client(e), votre transaction Send-Paz N° " . $transaction['ranking'] . " vers " . $transaction['receiving_country'] . " a été rejetée. Prière de vous rapprocher de Send-Paz pour plus de détails."
                     ];
                     $resSend = $client->post(config('keys.url_api') . 'auth/send_sms_to_phone', [
                         'verify' => false,
@@ -1756,11 +1761,11 @@ class TransactionController extends Controller
                     'user_id' => $idUser
                 ];
                 // dd($receiveCountry, $phone_sender, $numero);
-                $txtFrom = "THOLADPAY";
+                $txtFrom = "Send-Paz";
                 $successSMS = [
                     "from" =>  $txtFrom,
                     "to" =>  $phone_sender,
-                    "text" =>  "Cher(e) client(e), votre transaction TholadPay N° " . $numero . " vers " . $receiveCountry . " a été annulée pour (" . $note . "). Prière de vous rapprocher de THOLADPay pour plus de détails."
+                    "text" =>  "Cher(e) client(e), votre transaction Send-Paz N° " . $numero . " vers " . $receiveCountry . " a été annulée pour (" . $note . "). Prière de vous rapprocher de Send-Paz pour plus de détails."
                 ];
                 $resSend = $client->post(config('keys.url_api') . 'auth/send_sms_to_phone', [
                     'verify' => false,
@@ -1807,7 +1812,7 @@ class TransactionController extends Controller
                 $phone_sender =  $request->get('phone_sender');
                 $phone_receive = $request->get('phone_receive');
                 $idUser = $request->get('idUser');
-                $txtFrom = "THOLADPAY";
+                $txtFrom = "Send-Paz";
                 $token = $request->session()->get('_token');
                 $client = new Client();
                 $us = [
@@ -1819,7 +1824,7 @@ class TransactionController extends Controller
                 $senderMy = [
                     "from" =>  $txtFrom,
                     "to" =>  $phone_sender,
-                    "text" =>  "Vous avez effectué une transaction sur THOLADPAY. Votre bénéficiaire est informé par SMS"
+                    "text" =>  "Vous avez effectué une transaction sur Send-Paz. Votre bénéficiaire est informé par SMS"
                 ];
                 // $resSend = $client->post(config('keys.url_api') . 'auth/send_sms_to_phone', [
                 //     'verify' => false,
@@ -1833,7 +1838,7 @@ class TransactionController extends Controller
                 // $receiver = [
                 //     "from" =>  $txtFrom,
                 //     "to" =>  $phone_receive,
-                //     "text" =>  "Vous etes bénéficiaire d'une transation sur THOLADPAY. Rendez vous dans l'agence la plus proche"
+                //     "text" =>  "Vous etes bénéficiaire d'une transation sur Send-Paz. Rendez vous dans l'agence la plus proche"
                 // ];
                 // $resReceived = $client->post(config('keys.url_api') . 'auth/send_sms_to_phone', [
                 //     'verify' => false,

@@ -61,23 +61,33 @@
                                                                 class="red">*</i></label>
                                     @php
                                         // AJOUT (2026-08-08) : Cash Pickup (retrait en espèces), saisi dès la
-                                        // création mobile, n'existe que chez DigitWace — voir App\Cash /
-                                        // TransactionController::update() qui force déjà $partnerChoice côté
-                                        // serveur. On désactive ici l'option Peex pour éviter toute confusion
-                                        // (le serveur l'ignorerait de toute façon si elle était soumise).
+                                        // création mobile — Peex ne le propose pas du tout, on désactive donc
+                                        // cette option pour éviter toute confusion (le serveur l'ignorerait de
+                                        // toute façon si elle était soumise).
+                                        // FIX (2026-08-08) : "Interne (réseau Send-Paz)" était ÉGALEMENT
+                                        // désactivé ici pour un Cash Pickup, et TransactionController::update()/
+                                        // sendtransaction() forçaient 'digitwace' sans exception dès que
+                                        // outbound.cash existait — impossible de router un Cash Pickup vers le
+                                        // réseau interne, même en le sélectionnant explicitement (l'admin le
+                                        // voyait revenir sur DigitWace à chaque fois, sans code de retrait
+                                        // généré). Le réseau interne fonctionne pourtant pour N'IMPORTE quel
+                                        // type de compte (le bénéficiaire retire en espèces avec un code de
+                                        // toute façon) — seul Peex reste réellement incompatible avec Cash
+                                        // Pickup. Option réactivée ; voir les deux méthodes citées pour le
+                                        // pendant serveur de ce correctif.
                                         $isCashPickup = isset($transaction['outbound']['cash']) && $transaction['outbound']['cash'] !== null;
                                     @endphp
                                                     <div class="col-8">
                                                         <select class="form-control" name="partner" id="partner" onchange="tholadpayToggleDigitwaceFields()">
                                                             <option value="peex" {{ $isCashPickup ? 'disabled' : '' }} {{ (($partnerChoice ?? 'peex') === 'peex') ? 'selected' : '' }}>Peex</option>
-                                                            <option value="digitwace" {{ (($partnerChoice ?? 'peex') === 'digitwace' || $isCashPickup) ? 'selected' : '' }}>DigitWace</option>
-                                                            {{-- AJOUT (2026-08-08) : transfert 100% interne (sans Peex ni DigitWace) —
-                                                                 voir InternalTransferController. Le bénéficiaire retire en espèces avec
-                                                                 un code, chez n'importe quel agent tholadpay du pays destinataire. --}}
-                                                            <option value="internal" {{ $isCashPickup ? 'disabled' : '' }} {{ (($partnerChoice ?? 'peex') === 'internal') ? 'selected' : '' }}>Interne (réseau Send-Paz)</option>
+                                                            <option value="digitwace" {{ (($partnerChoice ?? 'peex') === 'digitwace') ? 'selected' : '' }}>DigitWace</option>
+                                                            {{-- Transfert 100% interne (sans Peex ni DigitWace) — voir
+                                                                 InternalTransferController. Le bénéficiaire retire en espèces avec
+                                                                 un code, chez n'importe quel agent Send-Paz du pays destinataire. --}}
+                                                            <option value="internal" {{ (($partnerChoice ?? 'peex') === 'internal') ? 'selected' : '' }}>Interne (réseau Send-Paz)</option>
                                                         </select>
                                                         @if($isCashPickup)
-                                                            <small class="text-muted">Retrait en espèces : disponible uniquement via DigitWace.</small>
+                                                            <small class="text-muted">Retrait en espèces : via DigitWace, ou en interne (réseau Send-Paz, sans partenaire externe).</small>
                                                         @endif
                                                     </div>
                                                 </div>
