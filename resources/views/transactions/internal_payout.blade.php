@@ -53,8 +53,72 @@
                             @endif
 
                             @if ($step === 'lookup')
+                                {{-- AJOUT (2026-08-08) : liste des retraits déjà "consultés" par leur
+                                     bénéficiaire depuis l'application mobile (écran public "Vérifier un
+                                     retrait") — voir Transaction::beneficiary_checked_in_at. L'agent clique
+                                     directement une ligne pour lancer la vérification, sans ressaisir le code. --}}
+                                <h5>Transactions entrantes en attente</h5>
+                                @if ($needsAgentPicker)
+                                    <div class="form-group row">
+                                        <label for="payer_agent_selector" class="col-2 col-form-label">Agence qui encaisse <i class="red">*</i></label>
+                                        <div class="col-4">
+                                            <select class="form-control" id="payer_agent_selector">
+                                                <option value="">— Sélectionner avant de vérifier une ligne —</option>
+                                                @foreach ($agentsList as $agt)
+                                                    <option value="{{ $agt['id'] }}" {{ (string) $payerAgentId === (string) $agt['id'] ? 'selected' : '' }}>
+                                                        {{ ($agt['user']['full_name'] ?? '') . ' [' . ($agt['nom_commercial'] ?? '') . ']' }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+                                @endif
+                                @if (count($pendingList) === 0)
+                                    <p class="text-muted">Aucun bénéficiaire n'a encore consulté son code de retrait depuis l'application. Vous pouvez tout de même rechercher un code manuellement ci-dessous.</p>
+                                @else
+                                    <div class="table-responsive mb-4">
+                                        <table class="table table-sm table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Référence</th>
+                                                    <th>Bénéficiaire</th>
+                                                    <th>Montant</th>
+                                                    <th>Pays</th>
+                                                    <th>Expéditeur</th>
+                                                    <th>Consulté le</th>
+                                                    <th></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach ($pendingList as $tx)
+                                                    <tr>
+                                                        <td><strong>{{ $tx['ranking'] ?? '—' }}</strong></td>
+                                                        <td>{{ strtoupper($tx['recipient_first_name'] ?? '') }} {{ ucwords($tx['recipient_last_name'] ?? '') }}</td>
+                                                        <td>{{ number_format($tx['montant_beneficiaire'] ?? 0, 0, ',', ' ') }} {{ $tx['to_currency'] ?? '' }}</td>
+                                                        <td>{{ $tx['receiving_country'] ?? '—' }}</td>
+                                                        <td>{{ $tx['user']['first_name'] ?? '' }} {{ $tx['user']['last_name'] ?? '' }} <span class="text-muted">({{ $tx['agent']['nom_commercial'] ?? '—' }}, {{ $tx['agent']['country']['name'] ?? '—' }})</span></td>
+                                                        <td>{{ !empty($tx['beneficiary_checked_in_at']) ? \Carbon\Carbon::parse($tx['beneficiary_checked_in_at'])->format('d/m/Y H:i') : '—' }}</td>
+                                                        <td>
+                                                            <form action="{{ route('internal_payout') }}" method="post" class="d-inline quick-verify-form">
+                                                                {{ csrf_field() }}
+                                                                <input type="hidden" name="pickup_code" value="{{ $tx['internal_pickup_code'] ?? '' }}">
+                                                                @if ($needsAgentPicker)
+                                                                    <input type="hidden" name="payer_agent_id" class="payer_agent_hidden" value="{{ $payerAgentId }}">
+                                                                @endif
+                                                                <button type="submit" class="btn btn-sm btn-primary waves-effect">
+                                                                    <i class="mdi mdi-magnify mr-1"></i> Vérifier
+                                                                </button>
+                                                            </form>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @endif
+
                                 <h5>Étape 1 — Code de retrait</h5>
-                                <p class="text-muted">Saisissez le code communiqué par le bénéficiaire (format XXXX-XXXX).</p>
+                                <p class="text-muted">Ou saisissez directement le code communiqué par le bénéficiaire (format XXXX-XXXX).</p>
                                 <form action="{{ route('internal_payout') }}" method="post" class="form-horizontal">
                                     {{ csrf_field() }}
                                     {{-- AJOUT (2026-08-08) : un administrateur/finance_manager/technical_support
@@ -162,3 +226,36 @@
         </div>
     </div>
 @stop
+
+@if ($step === 'lookup' && $needsAgentPicker)
+    @section('javascripts')
+        <script>
+            // AJOUT (2026-08-08) : les boutons "Vérifier" de la liste des transactions
+            // entrantes sont des mini-formulaires séparés du sélecteur d'agence — on
+            // synchronise leur champ caché payer_agent_id sur la sélection courante,
+            // et on bloque l'envoi tant qu'aucune agence n'est choisie (nécessaire pour
+            // administrateur/finance_manager/technical_support, qui n'ont pas d'agence
+            // propre en session).
+            (function () {
+                var selector = document.getElementById('payer_agent_selector');
+                if (!selector) return;
+                function sync() {
+                    var val = selector.value;
+                    document.querySelectorAll('.payer_agent_hidden').forEach(function (el) {
+                        el.value = val;
+                    });
+                }
+                selector.addEventListener('change', sync);
+                sync();
+                document.querySelectorAll('.quick-verify-form').forEach(function (form) {
+                    form.addEventListener('submit', function (e) {
+                        if (!selector.value) {
+                            e.preventDefault();
+                            alert('Veuillez d\'abord sélectionner l\'agence qui encaisse.');
+                        }
+                    });
+                });
+            })();
+        </script>
+    @stop
+@endif

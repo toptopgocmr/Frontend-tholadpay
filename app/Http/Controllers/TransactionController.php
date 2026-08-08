@@ -1948,6 +1948,35 @@ class TransactionController extends Controller
         }
         $payerAgentId = $agent['id'] ?? $request->get('payer_agent_id');
 
+        // AJOUT (2026-08-08) : liste des retraits internes déjà "consultés" par
+        // leur bénéficiaire depuis l'écran mobile public (SuiviRetraitPage), donc
+        // probablement en route vers une agence — voir migration
+        // add_beneficiary_checkin_to_transactions_table. L'agent peut cliquer
+        // directement une ligne pour lancer la vérification, au lieu de ressaisir
+        // le code à la main (demande utilisateur du 2026-08-08).
+        $pendingList = [];
+        try {
+            $res = $client->get(config('keys.url_api') . 'transactions', [
+                'verify' => false,
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Authorization' => 'Bearer ' . $token
+                ],
+                'query' => [
+                    'corridor_id' => 3,
+                    'etat_transac' => 'AwaitingPickup',
+                    'beneficiary_checked_in_at-not_nl' => 1,
+                    '_includes' => 'user,agent,agent.country',
+                    '_sort' => 'beneficiary_checked_in_at',
+                    '_sortDir' => 'desc',
+                    'per_page' => 100,
+                ]
+            ]);
+            $pendingList = json_decode($res->getBody()->getContents(), true)['data'] ?? [];
+        } catch (\Exception $e) {
+            $pendingList = [];
+        }
+
         $step = 'lookup';
         $lookup = null;
         $pickupCode = null;
@@ -2017,6 +2046,6 @@ class TransactionController extends Controller
             }
         }
 
-        return view('transactions.internal_payout', compact('token', 'role', 'user', 'menu', 'step', 'lookup', 'pickupCode', 'needsAgentPicker', 'agentsList', 'payerAgentId'));
+        return view('transactions.internal_payout', compact('token', 'role', 'user', 'menu', 'step', 'lookup', 'pickupCode', 'needsAgentPicker', 'agentsList', 'payerAgentId', 'pendingList'));
     }
 }
