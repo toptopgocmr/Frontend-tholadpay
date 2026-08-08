@@ -92,6 +92,7 @@ class TransactionController extends Controller
                 // @unlink($tr['notes']);
                 if ($tr['transaction_status'] === 'approuved' && $tr['reference'] !== '' && $tr['date_init'] === $d && $tr['etat_transac'] !== 'success' && $tr['etat_transac'] !== 'failed') {
                     // dump($tr);
+                    $isDigitwaceTx = (string) ($tr['corridor_id'] ?? '') === '2';
                     $tar = [
                         'referenceID' => $tr['reference'],
                         'client_id' => $tr['corridor_id'],
@@ -100,6 +101,10 @@ class TransactionController extends Controller
                         // check_transaction_status(). Sans ça, les virements bancaires
                         // n'étaient jamais trouvés (toujours interrogés via Disbursement).
                         'type' => (isset($tr['outbound']['bank']) && $tr['outbound']['bank'] !== null) ? 'bank' : 'mobile',
+                        // Transaction envoyée via DigitWace (corridor_id=2, voir
+                        // OutboundController::get_partner) -> statut interrogé via
+                        // GET /transaction/status/{ref} (doc §XI) plutôt que Peex all_requests.
+                        'partner' => $isDigitwaceTx ? 'digitwace' : 'peex',
                     ];
                     $res = $client->post(config('keys.url_api') . 'check_transaction_status', [
                         'verify' => false,
@@ -111,6 +116,19 @@ class TransactionController extends Controller
                     ]);
                     $res = json_decode($res->getBody()->getContents(), true);
                     // dump($res, $tr);
+
+                    // Normalisation DigitWace -> forme Peex, voir commentaire identique et
+                    // plus détaillé dans checkStatusOfTransaction() ci-dessous.
+                    if ($isDigitwaceTx && isset($res['transaction']) && is_array($res['transaction'])) {
+                        $dwStatusRaw = strtoupper((string) ($res['transaction']['Status'] ?? ''));
+                        $statusMap = ['PAID' => 'paid', 'CANCEL' => 'failed'];
+                        $res = [[
+                            'status' => $statusMap[$dwStatusRaw] ?? 'pending',
+                            'track_id' => $tr['reference'],
+                            'message' => is_string($res['messages'] ?? null) ? $res['messages'] : $dwStatusRaw,
+                        ]];
+                    }
+                    $partnerLabel = $isDigitwaceTx ? 'DigitWace' : 'Peex';
                     // NETTOYAGE TERRAPAY -> PEEX (2026-07-04) : ce bloc supposait un format
                     // {status:200|400, message, transaction:{transaction_reference,
                     // transaction_status, updated_at}, transactionStatus} — hérité de
@@ -137,7 +155,7 @@ class TransactionController extends Controller
                             'payer' => 1,
                             'etat_transac' => 'success',
                             'date_complete' => @date('Y-m-d'),
-                            'observations' => 'Transaction payée avec succès (Peex, statut "paid").'
+                            'observations' => 'Transaction payée avec succès (' . $partnerLabel . ', statut "paid").'
                         ];
                         // dump($maTrans);
                         $trans = $client->put(config('keys.url_api') . 'transactions/' . $tr['id'], [
@@ -167,9 +185,15 @@ class TransactionController extends Controller
                             $resSend = json_decode($resSend->getBody()->getContents(), true);
                         }
                     } else if ($peexTx !== null && in_array($peexStatus, ['failed', 'rejected', 'canceled'])) {
-                        // Transaction définitivement en échec côté Peex.
+                        // Transaction définitivement en échec côté partenaire.
                         if ($tr['etat_transac'] !== 'failed') {
-                            $manage = 'Transaction Peex : statut "' . $peexStatus . '".';
+                            // FIX (2026-07-28) : Peex renvoie aussi un champ "message" par transaction
+                            // (doc https://peex-api-docs.peexit.com/disbursement/all-request, ex:
+                            // {..., "status":"rejected", "message":"..."}), jusqu'ici jamais lu -> le
+                            // motif exact d'un rejet n'était donc jamais visible en admin, seulement
+                            // le mot "rejected" sans explication.
+                            $peexMessage = trim((string) ($peexTx['message'] ?? ''));
+                            $manage = 'Transaction ' . $partnerLabel . ' : statut "' . $peexStatus . '".' . ($peexMessage !== '' ? ' Motif : ' . $peexMessage : ' (' . $partnerLabel . ' n\'a fourni aucun motif détaillé.)');
                             $maTrans = [
                                 'etat_transac' => 'failed',
                                 'date_complete' => @date('Y-m-d'),
@@ -628,6 +652,12 @@ class TransactionController extends Controller
         $client_id = 0;
         $clientName = '';
         $currency = 'Congolese franc';
+        // Partenaire choisi par l'agent/admin pour acheminer ce transfert (Peex ou
+        // DigitWace, voir OutboundController::get_partner) : soumis via le select
+        // "partner" du formulaire étape 1 ; on retombe sur la session (déjà choisi
+        // à un chargement précédent de cette même page) puis sur 'peex' par défaut
+        // pour ne rien changer au comportement existant si jamais rien n'est fourni.
+        $partnerChoice = $request->get('partner') ?: $request->session()->get('partner_' . $id, 'peex');
         try {
             $client = new Client();
             $transaction = $client->get(config('keys.url_api') . 'transactions/' . $id . '?_includes=sender,agent,sender.user,user,user.addresses,user.addresses.town,outbound.bank,outbound.mobile&order=desc', [
@@ -650,7 +680,7 @@ class TransactionController extends Controller
                 } else {
                     $codeP = $transaction['receiving_country_code'];
                     $currency = $transaction['to_currency'];
-                    $partner = $client->get(config('keys.url_api') . 'get_partner?country_code=' . $codeP, [
+                    $partner = $client->get(config('keys.url_api') . 'get_partner?country_code=' . $codeP . '&partner=' . $partnerChoice, [
                         'verify' => false,
                         'headers' => [
                             'Content-Type' => 'application/json',
@@ -682,6 +712,19 @@ class TransactionController extends Controller
                     ]);
                     $sender = json_decode($sender->getBody()->getContents(), true);
                     if ($request->getMethod() === 'POST') {
+                        // On mémorise le partenaire choisi (+ les champs propres à
+                        // DigitWace, obligatoires côté API mais absents du modèle Peex :
+                        // relation/idType/idNumber bénéficiaire, voir doc §VI/§VIII) pour
+                        // les étapes 2/3 (getquotation/sendtransaction), qui rechargent
+                        // la transaction sans repasser par ce formulaire.
+                        $request->session()->put('partner_' . $id, $partnerChoice);
+                        if ($partnerChoice === 'digitwace') {
+                            $request->session()->put('dw_extra_' . $id, [
+                                'receiver_id_number' => trim((string) $request->get('receiver_id_number')),
+                                'receiver_id_type' => $request->get('receiver_id_type') ?: 'PP',
+                                'relation' => trim((string) $request->get('relation')),
+                            ]);
+                        }
                         try {
                             // dump($transaction);
                             $p = null;
@@ -692,7 +735,8 @@ class TransactionController extends Controller
                                     'bankaccountno' => trim($transaction['outbound']['bank']['bank_account_no']),
                                     'shortcode' => trim($transaction['outbound']['bank']['short_code']),
                                     'receiving_country' => $transaction['receiving_country_code'],
-                                    'client_id' => (isset($partner)) ? $partner['client']['id'] : 0
+                                    'client_id' => (isset($partner)) ? $partner['client']['id'] : 0,
+                                    'partner' => $partnerChoice,
                                 ];
                                 $p = $client->post(config('keys.url_api') . 'check_bank_account_status', [
                                     'verify' => false,
@@ -708,6 +752,7 @@ class TransactionController extends Controller
                                 $infoTrans = [
                                     'receiver_full_name' => trim($request->get('nomB') . ' ' . $request->get('prenomB')),
                                     'receiver_phone' => trim($request->get('phoneB')),
+                                    'partner' => $partnerChoice,
                                     // FIX : ce champ manquait ici (présent seulement dans la branche bancaire
                                     // juste au-dessus). Sans lui, check_account_status côté backend renvoyait
                                     // systématiquement 422 "receiving_country is required", affiché en admin
@@ -827,7 +872,7 @@ class TransactionController extends Controller
             return redirect()->route('transaction_list')
                 ->with('error', 'Erreur lors de la validation : ' . $e->getMessage());
         }
-        return view('transactions.update', compact('currency', 'client_id', 'type', 'token', 'role', 'user', 'menu', 'transaction', 'clientName', 'partner'));
+        return view('transactions.update', compact('currency', 'client_id', 'type', 'token', 'role', 'user', 'menu', 'transaction', 'clientName', 'partner', 'partnerChoice'));
     }
 
 
@@ -843,6 +888,10 @@ class TransactionController extends Controller
         $currency = 'Congolese franc';
         $quote = null;
         $client = new Client();
+        // Choisi à l'étape 1 (transactions.update) et mémorisé en session — voir
+        // TransactionController::update(). 'peex' par défaut si l'agent arrive
+        // directement sur cette étape sans être passé par l'étape 1 (lien direct).
+        $partnerChoice = $request->session()->get('partner_' . $id, 'peex');
         try {
             $transaction = $client->get(config('keys.url_api') . 'transactions/' . $id . '?_includes=sender,agent,sender.user,user,user.addresses,user.addresses.town,user.agent,user.agent.agent,outbound.bank,outbound.mobile&order=desc', [
                 'verify' => false,
@@ -854,7 +903,7 @@ class TransactionController extends Controller
             $transaction = json_decode($transaction->getBody()->getContents(), true);
             // dump($transaction);
             $codeP = $transaction['receiving_country_code'];
-            $partner = $client->get(config('keys.url_api') . 'get_partner?country_code=' . $codeP, [
+            $partner = $client->get(config('keys.url_api') . 'get_partner?country_code=' . $codeP . '&partner=' . $partnerChoice, [
                 'verify' => false,
                 'headers' => [
                     'Content-Type' => 'application/json',
@@ -884,6 +933,20 @@ class TransactionController extends Controller
                         try {
 
                             $montant = (int) preg_replace('/[^0-9]/', '', $request->get('amount'));
+
+                            // Ce formulaire (transactions.quote) capture déjà "origin"/"reason" —
+                            // champs historiques non consommés jusqu'ici (voir TerraPay). Pour
+                            // DigitWace, on les réutilise comme originFund/reason (doc §XVII/
+                            // §XVIII, valeurs imposées par DigitWace, voir liste dans la vue) et
+                            // on les fusionne avec les infos déjà mémorisées à l'étape 1
+                            // (receiver_id_number/type, relation).
+                            if ($partnerChoice === 'digitwace') {
+                                $dwExtra = $request->session()->get('dw_extra_' . $id, []);
+                                $dwExtra['origin_fund'] = trim((string) $request->get('origin')) ?: ($dwExtra['origin_fund'] ?? '');
+                                $dwExtra['reason'] = trim((string) $request->get('reason')) ?: ($dwExtra['reason'] ?? '');
+                                $request->session()->put('dw_extra_' . $id, $dwExtra);
+                            }
+
                             $p = null;
                             if ($transaction['outbound']['bank'] !== null) {
                                 $infoTrans = [
@@ -895,7 +958,8 @@ class TransactionController extends Controller
                                     'user_id' => $transaction['user']['id'],
                                     'bankaccountno' => trim($transaction['outbound']['bank']['bank_account_no']),
                                     'receiving_country' => $transaction['receiving_country_code'],
-                                    'client_id' => (isset($partner)) ? $partner['client']['id'] : 0
+                                    'client_id' => (isset($partner)) ? $partner['client']['id'] : 0,
+                                    'partner' => $partnerChoice,
                                 ];
                                 $p = $client->post(config('keys.url_api') . 'get_bank_quotation', [
                                     'verify' => false,
@@ -916,7 +980,8 @@ class TransactionController extends Controller
                                     'requestCurrency' => 'XAF',
                                     'sendingCurrency' => 'XAF',
                                     'user_id' => $transaction['user']['id'],
-                                    'client_id' => (isset($partner)) ? $partner['client']['id'] : 0
+                                    'client_id' => (isset($partner)) ? $partner['client']['id'] : 0,
+                                    'partner' => $partnerChoice,
                                 ];
                                 $p = $client->post(config('keys.url_api') . 'get_quotation', [
                                     'verify' => false,
@@ -972,7 +1037,7 @@ class TransactionController extends Controller
             // dump($e->getMessage());
             return redirect()->route('transaction_list')->with('error', 'Erreur lors de la validation du compte.');
         }
-        return view('transactions.quote', compact('currency', 'type', 'token', 'role', 'user', 'menu', 'transaction', 'partner', 'quote'));
+        return view('transactions.quote', compact('currency', 'type', 'token', 'role', 'user', 'menu', 'transaction', 'partner', 'quote', 'partnerChoice'));
     }
 
 
@@ -999,6 +1064,9 @@ class TransactionController extends Controller
         // session PERSISTANTE et propre à cette transaction (`quote_{id}`),
         // écrite par getquotation() via session()->put() (pas ->with()).
         $quote = session()->get('quote_' . $id);
+        // Choisi à l'étape 1, voir commentaire identique dans getquotation().
+        $partnerChoice = $request->session()->get('partner_' . $id, 'peex');
+        $dwExtra = $request->session()->get('dw_extra_' . $id, []);
         try {
             $client = new Client();
             $transaction = $client->get(config('keys.url_api') . 'transactions/' . $id . '?_includes=sender,agent,sender.user,user,user.addresses,user.addresses.town,user.agent,user.agent.agent,outbound.bank,outbound.mobile&order=desc', [
@@ -1011,7 +1079,7 @@ class TransactionController extends Controller
             $transaction = json_decode($transaction->getBody()->getContents(), true);
             // dump($transaction);
             $codeP = $transaction['receiving_country_code'];
-            $partner = $client->get(config('keys.url_api') . 'get_partner?country_code=' . $codeP, [
+            $partner = $client->get(config('keys.url_api') . 'get_partner?country_code=' . $codeP . '&partner=' . $partnerChoice, [
                 'verify' => false,
                 'headers' => [
                     'Content-Type' => 'application/json',
@@ -1070,7 +1138,20 @@ class TransactionController extends Controller
                                     // absente), ce qui déclenchait "bank_iban, bank_swift and bank_address are
                                     // required" dès que le sender n'avait pas d'adresse enregistrée.
                                     'bank_address' => trim(@$transaction['outbound']['bank']['bank_address']),
+                                    'partner' => $partnerChoice,
                                 ];
+                                if ($partnerChoice === 'digitwace') {
+                                    // Champs exigés par DigitWace, sans équivalent Peex (voir doc
+                                    // §VI/§X et OutboundController::sendDigitwaceBankTransaction) :
+                                    // idNumber/idType bénéficiaire (mémorisés à l'étape 1), relation/
+                                    // originFund/reason (étape 1 pour relation, étape 2 — champs
+                                    // "origin"/"reason" déjà existants — pour les deux autres).
+                                    $infoTrans['receiver_id_number'] = $dwExtra['receiver_id_number'] ?? '';
+                                    $infoTrans['receiver_id_type'] = $dwExtra['receiver_id_type'] ?? 'PP';
+                                    $infoTrans['relation'] = $dwExtra['relation'] ?? '';
+                                    $infoTrans['origin_fund'] = $dwExtra['origin_fund'] ?? '';
+                                    $infoTrans['reason'] = $dwExtra['reason'] ?? '';
+                                }
                                 // dump($infoTrans);
 
                                 $p = $client->post(config('keys.url_api') . 'send_bank_transaction', [
@@ -1109,7 +1190,16 @@ class TransactionController extends Controller
                                     // bancaire ci-dessus — `track_id` garanti unique par tentative,
                                     // indépendant du `ranking` (vulnérable aux remises à zéro de la base).
                                     'track_id' => $transaction['ranking'] . '-' . uniqid(),
+                                    'partner' => $partnerChoice,
                                 ];
+                                if ($partnerChoice === 'digitwace') {
+                                    // Voir commentaire identique dans la branche bancaire ci-dessus.
+                                    $infoTrans['receiver_id_number'] = $dwExtra['receiver_id_number'] ?? '';
+                                    $infoTrans['receiver_id_type'] = $dwExtra['receiver_id_type'] ?? 'PP';
+                                    $infoTrans['relation'] = $dwExtra['relation'] ?? '';
+                                    $infoTrans['origin_fund'] = $dwExtra['origin_fund'] ?? '';
+                                    $infoTrans['reason'] = $dwExtra['reason'] ?? '';
+                                }
 
                                 $p = $client->post(config('keys.url_api') . 'send_transaction', [
                                     'verify' => false,
@@ -1174,8 +1264,11 @@ class TransactionController extends Controller
 
                                 // Nettoyage : la cotation de cette transaction vient d'être utilisée
                                 // avec succès, on la retire de la session (évite qu'elle traîne
-                                // indéfiniment une fois la transaction validée).
+                                // indéfiniment une fois la transaction validée). Idem pour le choix
+                                // de partenaire et les champs DigitWace propres à cette transaction.
                                 $request->session()->forget('quote_' . $transaction['id']);
+                                $request->session()->forget('partner_' . $transaction['id']);
+                                $request->session()->forget('dw_extra_' . $transaction['id']);
 
                                 $phone_sender =  $transaction['user']['phone_number'];
                                 $phone_receive = $transaction['recipient_phone'];
@@ -1212,7 +1305,7 @@ class TransactionController extends Controller
             // dump($e->getMessage());
             return redirect()->route('transaction_list')->with('error', 'Erreur lors de la validation du compte.');
         }
-        return view('transactions.transaction', compact('currency', 'type', 'token', 'role', 'user', 'menu', 'transaction', 'quote'));
+        return view('transactions.transaction', compact('currency', 'type', 'token', 'role', 'user', 'menu', 'transaction', 'quote', 'partnerChoice'));
     }
 
     public function checkStatusOfTransaction(Request $request, $id)
@@ -1233,12 +1326,17 @@ class TransactionController extends Controller
             ]);
             $transaction = json_decode($transaction->getBody()->getContents(), true);
 
+            // corridor_id = 2 -> transaction envoyée via DigitWace (voir OutboundController::
+            // get_partner) ; on précise 'partner' pour router GET /transaction/status/{ref}
+            // (doc §XI) plutôt que Peex all_requests.
+            $isDigitwaceTx = (string) ($transaction['corridor_id'] ?? '') === '2';
             $tar = [
                 'referenceID' => $transaction['reference'],
                 'client_id' => $transaction['corridor_id'],
                 // FIX (2026-07-06) : voir commentaire identique dans index() — routage
                 // Remittance (bancaire) vs Disbursement (mobile money) côté backend.
                 'type' => (isset($transaction['outbound']['bank']) && $transaction['outbound']['bank'] !== null) ? 'bank' : 'mobile',
+                'partner' => $isDigitwaceTx ? 'digitwace' : 'peex',
             ];
             $res = $client->post(config('keys.url_api') . 'check_transaction_status', [
                 'verify' => false,
@@ -1250,6 +1348,21 @@ class TransactionController extends Controller
             ]);
             $res = json_decode($res->getBody()->getContents(), true);
 
+            // DigitWace renvoie un objet unique {"transaction":{...,"Status":"PAID"|"CANCEL"|
+            // "PENDING"|"WAITING CONFIRMATION"|"PROCESSING"|"LOCKED"}} (doc §XI), très
+            // différent du tableau Peex {[{...,"status":"paid"}]}. On le ramène ici à la même
+            // forme normalisée que Peex pour réutiliser telle quelle toute la logique
+            // success/failed/pending ci-dessous (SMS, remboursement agent, etc.).
+            if ($isDigitwaceTx && isset($res['transaction']) && is_array($res['transaction'])) {
+                $dwStatusRaw = strtoupper((string) ($res['transaction']['Status'] ?? ''));
+                $statusMap = ['PAID' => 'paid', 'CANCEL' => 'failed'];
+                $res = [[
+                    'status' => $statusMap[$dwStatusRaw] ?? 'pending',
+                    'track_id' => $transaction['reference'],
+                    'message' => is_string($res['messages'] ?? null) ? $res['messages'] : $dwStatusRaw,
+                ]];
+            }
+
             // FIX (nettoyage TerraPay -> Peex) : le backend renvoie soit un tableau brut
             // Peex (succès, ex: [{...,"status":"paid"}]) soit {status:<code HTTP>, message}
             // en cas d'erreur backend. L'ancien code testait $res['status'] === 200/400,
@@ -1257,6 +1370,7 @@ class TransactionController extends Controller
             $isBackendError = isset($res['status']) && isset($res['message']);
             $peexTx = (!$isBackendError && is_array($res) && isset($res[0])) ? $res[0] : null;
             $peexStatus = $peexTx['status'] ?? null;
+            $partnerLabel = $isDigitwaceTx ? 'DigitWace' : 'Peex';
 
             if ($peexTx !== null && $peexStatus === 'paid') {
                 $maTrans = [
@@ -1264,7 +1378,7 @@ class TransactionController extends Controller
                     'payer' => 1,
                     'etat_transac' => 'success',
                     'date_complete' => @date('Y-m-d'),
-                    'observations' => 'Transaction payée avec succès (Peex, statut "paid").'
+                    'observations' => 'Transaction payée avec succès (' . $partnerLabel . ', statut "paid").'
                 ];
                 $trans = $client->put(config('keys.url_api') . 'transactions/' . $id, [
                     'verify' => false,
@@ -1292,7 +1406,10 @@ class TransactionController extends Controller
                 $resSend = json_decode($resSend->getBody()->getContents(), true);
                 return redirect()->route('transaction_list')->with('success', 'La transaction ' . $transaction['ranking'] . ' a été payé avec succès.');
             } else if ($peexTx !== null && in_array($peexStatus, ['failed', 'rejected', 'canceled'])) {
-                $manage = 'Transaction Peex : statut "' . $peexStatus . '".';
+                // FIX (2026-07-28) : voir commentaire identique dans index() — on remonte
+                // désormais le champ "message" de Peex pour afficher le vrai motif du rejet.
+                $peexMessage = trim((string) ($peexTx['message'] ?? ''));
+                $manage = 'Transaction ' . $partnerLabel . ' : statut "' . $peexStatus . '".' . ($peexMessage !== '' ? ' Motif : ' . $peexMessage : ' (' . $partnerLabel . ' n\'a fourni aucun motif détaillé.)');
                 $maTrans = [
                     'etat_transac' => 'failed',
                     'date_complete' => @date('Y-m-d'),
@@ -1351,7 +1468,7 @@ class TransactionController extends Controller
             } else if ($isBackendError) {
                 return redirect()->route('transaction_list')->with('error', $res['message'] ?? 'Erreur lors de la vérification du statut.');
             } else {
-                return redirect()->route('transaction_list')->with('error', 'Transaction en attente de traitement chez Peex (statut : ' . ($peexStatus ?? 'inconnu') . ').');
+                return redirect()->route('transaction_list')->with('error', 'Transaction en attente de traitement chez ' . $partnerLabel . ' (statut : ' . ($peexStatus ?? 'inconnu') . ').');
             }
         } catch (\Exception $e) {
             // dump($e->getMessage());

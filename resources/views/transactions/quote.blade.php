@@ -50,7 +50,7 @@
                             <form action="{{ route("transaction_quote", $transaction['id']) }}" method="post" class="form-horizontal">
                                 {{ csrf_field() }}
                                 <div id="step2" style="display: block">
-                                    <h3>Quotation de la transaction (2/3)</h3>
+                                    <h3>Quotation de la transaction (2/3) — Partenaire : {{ $partner['client']['name'] ?? 'Peex' }}</h3>
                                     <h5>Informations Transaction</h5>
                                     <fieldset>
                                         <div class="row">
@@ -85,7 +85,17 @@
                                                     <div class="col-8">
                                                         <input type="text"
                                                                value="{{$transaction['transaction_reference']}}"
-                                                               class="form-control" required name="origin" id="origin">
+                                                               class="form-control" required name="origin" id="origin"
+                                                               list="dwOriginFunds">
+                                                        {{-- Si DigitWace est le partenaire choisi (étape 1), ce champ
+                                                             est réutilisé comme "originFund" — DigitWace impose une
+                                                             valeur parmi une liste fermée (doc §XVII) ; suggestions
+                                                             ci-dessous à titre indicatif. --}}
+                                                        <datalist id="dwOriginFunds">
+                                                            <option value="Salary"><option value="Savings"><option value="Lottery">
+                                                            <option value="Loan"><option value="Business Income"><option value="Business Profit">
+                                                            <option value="Settlement"><option value="Others">
+                                                        </datalist>
                                                     </div>
                                                 </div>
                                             </div>
@@ -96,7 +106,15 @@
                                                     <div class="col-8">
                                                         <input type="text"
                                                                value="{{$transaction['transaction_reason']}}"
-                                                               class="form-control" required name="reason" id="reason">
+                                                               class="form-control" required name="reason" id="reason"
+                                                               list="dwReasons">
+                                                        {{-- Idem pour "reason" (doc §XVIII) si DigitWace est choisi. --}}
+                                                        <datalist id="dwReasons">
+                                                            <option value="Family Maintainance"><option value="Business Travel">
+                                                            <option value="Charitable Donation"><option value="Employee Compensation">
+                                                            <option value="Conference or Training Fee"><option value="Rent Property Expenses">
+                                                            <option value="Travel Expenses"><option value="Other Business Services">
+                                                        </datalist>
                                                     </div>
                                                 </div>
                                             </div>

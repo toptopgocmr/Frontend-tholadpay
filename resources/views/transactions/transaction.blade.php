@@ -64,7 +64,7 @@
                                 {{ csrf_field() }}                                
                                
                                 <div style="display: block">
-                                    <h3>Validation Transaction (3/3)</h3>
+                                    <h3>Validation Transaction (3/3) — Partenaire : {{ ucfirst($partnerChoice ?? 'peex') === 'Digitwace' ? 'DigitWace' : 'Peex' }}</h3>
                                     <h5>Transaction</h5>
                                     <fieldset>
                                         <div class="row">

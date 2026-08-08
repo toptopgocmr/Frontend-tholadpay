@@ -52,6 +52,68 @@
                                 
                                 <div id="step1" style="display: block">
                                     <h3>Validation Bénéficiaire & Expéditeur (1/3)</h3>
+                                    <h5>Partenaire d'acheminement</h5>
+                                    <fieldset>
+                                        <div class="row">
+                                            <div class="col-4">
+                                                <div class="form-group row">
+                                                    <label for="partner" class="col-4 col-form-label">Partenaire <i
+                                                                class="red">*</i></label>
+                                                    <div class="col-8">
+                                                        <select class="form-control" name="partner" id="partner" onchange="tholadpayToggleDigitwaceFields()">
+                                                            <option value="peex" {{ (($partnerChoice ?? 'peex') === 'peex') ? 'selected' : '' }}>Peex</option>
+                                                            <option value="digitwace" {{ (($partnerChoice ?? 'peex') === 'digitwace') ? 'selected' : '' }}>DigitWace</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {{-- Champs propres à DigitWace (doc §VI/§VIII/§X/§XVI) : sans équivalent
+                                             chez Peex, donc masqués par défaut et affichés uniquement quand
+                                             "DigitWace" est sélectionné ci-dessus (voir script en bas de page).
+                                             Non bloquants côté HTML : un message d'erreur clair du backend
+                                             (OutboundController::createDigitwaceBeneficiary/
+                                             requireDigitwaceReferenceFields) guide l'agent s'il valide sans les
+                                             remplir. --}}
+                                        <div id="digitwaceFields" style="{{ (($partnerChoice ?? 'peex') === 'digitwace') ? '' : 'display: none' }}">
+                                            <div class="row">
+                                                <div class="col-4">
+                                                    <div class="form-group row">
+                                                        <label for="receiver_id_number" class="col-4 col-form-label">N° pièce bénéficiaire</label>
+                                                        <div class="col-8">
+                                                            <input type="text" class="form-control" name="receiver_id_number" id="receiver_id_number">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-4">
+                                                    <div class="form-group row">
+                                                        <label for="receiver_id_type" class="col-4 col-form-label">Type de pièce</label>
+                                                        <div class="col-8">
+                                                            <select class="form-control" name="receiver_id_type" id="receiver_id_type">
+                                                                <option value="PP">Passeport</option>
+                                                                <option value="CNI">Carte Nationale d'Identité</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-4">
+                                                    <div class="form-group row">
+                                                        <label for="relation" class="col-4 col-form-label">Relation avec le bénéficiaire</label>
+                                                        <div class="col-8">
+                                                            <input type="text" class="form-control" name="relation" id="relation" list="dwRelations" placeholder="Ex: Brother, Sister, Self...">
+                                                            <datalist id="dwRelations">
+                                                                <option value="Self"><option value="Spouse"><option value="Wife"><option value="Husband">
+                                                                <option value="Brother"><option value="Sister"><option value="Mother"><option value="Father">
+                                                                <option value="Parent"><option value="Son"><option value="Daughter"><option value="Colleague">
+                                                                <option value="Friend"><option value="Other">
+                                                            </datalist>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <p class="text-muted">DigitWace impose des valeurs précises (relation / origine des fonds / raison — voir étape 2) : utilisez les suggestions proposées.</p>
+                                        </div>
+                                    </fieldset>
                                     <h5>Informations Bénéficiaire</h5>
                                     <fieldset>
                                         <div class="row">
@@ -218,4 +280,16 @@
         <!-- container-fluid -->
     </div>
     <!-- content -->
+@stop
+
+@section('javascripts')
+    <script type="text/javascript">
+        function tholadpayToggleDigitwaceFields() {
+            var partnerSelect = document.getElementById('partner');
+            var block = document.getElementById('digitwaceFields');
+            if (!partnerSelect || !block) { return; }
+            block.style.display = (partnerSelect.value === 'digitwace') ? '' : 'none';
+        }
+        document.addEventListener('DOMContentLoaded', tholadpayToggleDigitwaceFields);
+    </script>
 @stop
