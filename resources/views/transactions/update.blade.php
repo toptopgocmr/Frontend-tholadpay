@@ -115,9 +115,15 @@
                                                     <div class="form-group row">
                                                         <label for="receiver_id_type" class="col-4 col-form-label">Type de pièce</label>
                                                         <div class="col-8">
+                                                            {{-- AJOUT (2026-08-08) : voir mobile transaction.page.html — même liste
+                                                                 partout (codes non confirmés par DigitWace au-delà de PP/CNI). --}}
                                                             <select class="form-control" name="receiver_id_type" id="receiver_id_type">
                                                                 <option value="PP" {{ (($transaction['receiver_id_type'] ?? 'PP') === 'PP') ? 'selected' : '' }}>Passeport</option>
                                                                 <option value="CNI" {{ (($transaction['receiver_id_type'] ?? '') === 'CNI') ? 'selected' : '' }}>Carte Nationale d'Identité</option>
+                                                                <option value="PERMIS" {{ (($transaction['receiver_id_type'] ?? '') === 'PERMIS') ? 'selected' : '' }}>Permis de conduire</option>
+                                                                <option value="NIU" {{ (($transaction['receiver_id_type'] ?? '') === 'NIU') ? 'selected' : '' }}>NIU (Numéro d'Identifiant Unique)</option>
+                                                                <option value="RESIDENCE" {{ (($transaction['receiver_id_type'] ?? '') === 'RESIDENCE') ? 'selected' : '' }}>Carte de résidence</option>
+                                                                <option value="CONSULAIRE" {{ (($transaction['receiver_id_type'] ?? '') === 'CONSULAIRE') ? 'selected' : '' }}>Carte consulaire</option>
                                                             </select>
                                                         </div>
                                                     </div>
