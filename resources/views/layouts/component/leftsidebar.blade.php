@@ -87,7 +87,15 @@
                         <i class="fas fa-th"></i><span> Grille tarifaire</span>
                     </a>
                 </li>
-                @endif 
+                @endif
+
+                @if($role === 'administrator' || $role === 'agent' || $role === 'cashier' || $role === 'finance_manager')
+                <li>
+                    <a href="{{route('tax_list')}}" class="waves-effect {{$menu === 'Tax' ? 'mm-active' : ''}}">
+                        <i class="fas fa-percentage"></i><span> Gestion des taxes</span>
+                    </a>
+                </li>
+                @endif
 
                 @if($role === 'administrator' || $role === 'agent' || $role === 'cashier' || $role === 'finance_manager')
                 <li>

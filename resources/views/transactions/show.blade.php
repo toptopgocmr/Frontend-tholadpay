@@ -92,6 +92,40 @@
                                             <th>{{$transaction['frais_envoi']}} {{$transaction['from_currency']}}</th>
                                         </tr>
                                         <tr>
+                                            <th>Sous-total hors taxes</th>
+                                            <th>{{$transaction['frais_envoi']}} {{$transaction['from_currency']}}</th>
+                                        </tr>
+                                        @if(!empty($transaction['ttf']))
+                                        <tr>
+                                            <th>TTF</th>
+                                            <th>{{$transaction['ttf']}} {{$transaction['from_currency']}}</th>
+                                        </tr>
+                                        @endif
+                                        @if(!empty($transaction['commission_cobac']))
+                                        <tr>
+                                            <th>Commission COBAC</th>
+                                            <th>{{$transaction['commission_cobac']}} {{$transaction['from_currency']}}</th>
+                                        </tr>
+                                        @endif
+                                        @if(!empty($transaction['tva']))
+                                        <tr>
+                                            <th>TVA</th>
+                                            <th>{{$transaction['tva']}} {{$transaction['from_currency']}}</th>
+                                        </tr>
+                                        @endif
+                                        @if(!empty($transaction['timbre_electronique']))
+                                        <tr>
+                                            <th>Timbre électronique</th>
+                                            <th>{{$transaction['timbre_electronique']}} {{$transaction['from_currency']}}</th>
+                                        </tr>
+                                        @endif
+                                        @if(isset($transaction['frais_envoi_ttc']))
+                                        <tr>
+                                            <th>Sous-total avec taxes</th>
+                                            <th>{{$transaction['frais_envoi_ttc']}} {{$transaction['from_currency']}}</th>
+                                        </tr>
+                                        @endif
+                                        <tr>
                                             <th>Montant recu le bénéficiaire</th>
                                             <th>{{$transaction['montant_beneficiaire']}} {{$transaction['to_currency']}}</th>
                                         </tr>
@@ -114,7 +148,7 @@
                                         </tr>
                                         <tr>
                                             <th>Montant total de la transaction</th>
-                                            <th>{{$transaction['amount'] + $transaction['frais_envoi']}} {{$transaction['from_currency']}}</th>
+                                            <th>{{$transaction['amount'] + ($transaction['frais_envoi_ttc'] ?? $transaction['frais_envoi'])}} {{$transaction['from_currency']}}</th>
                                         </tr>
                                         <tr>
                                             <th>Description</th>

@@ -122,6 +122,7 @@
                                     <th>Montant <span style="font-size: 10px">(XAF)</span></th>
                                     <th>M. percu</th>
                                     <th>Frais <span style="font-size: 10px">(XAF)</span></th>
+                                    <th>Taxes <span style="font-size: 10px">(XAF)</span></th>
                                     <th>Pays</th>
                                     <th>Type</th>
                                     <th>Date</th>
@@ -142,6 +143,7 @@
                                         <td>{{$trans['amount']}}</td>
                                         <td>{{$trans['montant_beneficiaire']}}  <span style="font-size: 10px">({{$trans['to_currency']}})</span></td>
                                         <td>{{$trans['fees']}}</td>
+                                        <td>{{$trans['total_taxes'] ?? 0}}</td>
                                         <td>{{strtoupper($trans['receiving_country'])}}</td>
                                         {{-- FIX (2026-08-08) : ce ternaire (outbound.bank null => 'Mobile') datait
                                              d'avant l'ajout de Cash Pickup (DigitWace) et des transferts internes —

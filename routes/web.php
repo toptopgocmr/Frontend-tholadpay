@@ -122,4 +122,10 @@ Route::match(array('GET','POST'), 'admin/tarifications/{id}/modifier', [ 'middle
 Route::post('admin/tarifications/supprimer', [ 'middleware' => ['all'], 'uses' => 'TarificationController@delete', 'as' => 'tarif_delete' ]);
 Route::match(array('GET','POST'), 'admin/tarifications/{id}/detail', [ 'middleware' => ['all'], 'uses' => 'TarificationController@show', 'as' => 'tarif_show' ]);
 
+Route::get('admin/taxes', [ 'middleware' => ['all'], 'uses' => 'TaxController@index', 'as' => 'tax_list' ]);
+Route::match(array('GET','POST'), 'admin/taxes/ajouter', [ 'middleware' => ['all'], 'uses' => 'TaxController@create', 'as' => 'tax_add' ]);
+Route::match(array('GET','POST'), 'admin/taxes/{id}/modifier', [ 'middleware' => ['all'], 'uses' => 'TaxController@edit', 'as' => 'tax_edit' ]);
+Route::post('admin/taxes/supprimer', [ 'middleware' => ['all'], 'uses' => 'TaxController@delete', 'as' => 'tax_delete' ]);
+Route::match(array('GET','POST'), 'admin/taxes/{id}/detail', [ 'middleware' => ['all'], 'uses' => 'TaxController@show', 'as' => 'tax_show' ]);
+
 Route::get('logs', '\Rap2hpoutre\LaravelLogViewer\LogViewerController@index');

@@ -272,7 +272,23 @@
             <table class="info">
                 <tr><td class="label">Montant envoyé</td><td class="value">{{ number_format($transaction['amount'] ?? 0, 0, ',', ' ') }} {{ $transaction['from_currency'] ?? '' }}</td></tr>
                 <tr><td class="label">Frais d'envoi</td><td class="value">{{ number_format($transaction['frais_envoi'] ?? 0, 0, ',', ' ') }} {{ $transaction['from_currency'] ?? '' }}</td></tr>
-                <tr class="total"><td class="label">Montant total débité</td><td class="value">{{ number_format(($transaction['amount'] ?? 0) + ($transaction['frais_envoi'] ?? 0), 0, ',', ' ') }} {{ $transaction['from_currency'] ?? '' }}</td></tr>
+                <tr><td class="label">Sous-total hors taxes</td><td class="value">{{ number_format($transaction['frais_envoi'] ?? 0, 0, ',', ' ') }} {{ $transaction['from_currency'] ?? '' }}</td></tr>
+                @if(!empty($transaction['ttf']))
+                <tr><td class="label">TTF</td><td class="value">{{ number_format($transaction['ttf'], 0, ',', ' ') }} {{ $transaction['from_currency'] ?? '' }}</td></tr>
+                @endif
+                @if(!empty($transaction['commission_cobac']))
+                <tr><td class="label">Commission COBAC</td><td class="value">{{ number_format($transaction['commission_cobac'], 0, ',', ' ') }} {{ $transaction['from_currency'] ?? '' }}</td></tr>
+                @endif
+                @if(!empty($transaction['tva']))
+                <tr><td class="label">TVA</td><td class="value">{{ number_format($transaction['tva'], 0, ',', ' ') }} {{ $transaction['from_currency'] ?? '' }}</td></tr>
+                @endif
+                @if(!empty($transaction['timbre_electronique']))
+                <tr><td class="label">Timbre électronique</td><td class="value">{{ number_format($transaction['timbre_electronique'], 0, ',', ' ') }} {{ $transaction['from_currency'] ?? '' }}</td></tr>
+                @endif
+                @if(isset($transaction['frais_envoi_ttc']))
+                <tr><td class="label">Sous-total avec taxes</td><td class="value">{{ number_format($transaction['frais_envoi_ttc'], 0, ',', ' ') }} {{ $transaction['from_currency'] ?? '' }}</td></tr>
+                @endif
+                <tr class="total"><td class="label">Montant total débité</td><td class="value">{{ number_format(($transaction['amount'] ?? 0) + ($transaction['frais_envoi_ttc'] ?? ($transaction['frais_envoi'] ?? 0)), 0, ',', ' ') }} {{ $transaction['from_currency'] ?? '' }}</td></tr>
                 <tr><td class="label">Montant reçu par le bénéficiaire</td><td class="value">{{ number_format($transaction['montant_beneficiaire'] ?? 0, 0, ',', ' ') }} {{ $transaction['to_currency'] ?? '' }}</td></tr>
             </table>
         </div>
