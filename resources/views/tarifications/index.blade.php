@@ -67,7 +67,8 @@
                                 <tr>
                                     <th>Tranche A</th>
                                     <th>Tranche B</th>
-                                    <th>Frais</th>
+                                    <th>Frais (hors taxes)</th>
+                                    <th>Frais (avec taxes)</th>
                                     <th>Zone</th>
                                     <th>Actions</th>
                                 </tr>
@@ -81,7 +82,18 @@
                                         <tr>
                                             <td> {{ $c['tarif_1'] }}</td>
                                             <td> {{ $c['tarif_2'] }}</td>
-                                            <td> {{ $c['frais'] }}</td>
+                                            <td> {{ number_format($c['frais_ht'] ?? $c['frais'], 0, ',', ' ') }}</td>
+                                            <td>
+                                                @if (isset($c['frais_ttc_min']))
+                                                    @if (round($c['frais_ttc_min']) === round($c['frais_ttc_max']))
+                                                        {{ number_format($c['frais_ttc_min'], 0, ',', ' ') }}
+                                                    @else
+                                                        {{ number_format($c['frais_ttc_min'], 0, ',', ' ') }} - {{ number_format($c['frais_ttc_max'], 0, ',', ' ') }}
+                                                    @endif
+                                                @else
+                                                    —
+                                                @endif
+                                            </td>
                                             <td> {{ $c['zone']['name'] }}</td>
                                             <td>
                                                 <div class="btn-group mt-4 mt-md-0 button-items"
@@ -103,7 +115,7 @@
                                     @endif
                                 @empty
                                     <tr>
-                                        <td colspan="8">Aucun enregistrement trouvé</td>
+                                        <td colspan="6">Aucun enregistrement trouvé</td>
                                     </tr>
                                 @endforelse
                                 </tbody>

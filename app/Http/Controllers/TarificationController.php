@@ -29,6 +29,62 @@ class TarificationController extends Controller
             ]
         ]);
         $tarifications = json_decode($tarifications->getBody()->getContents(), true)['data'];
+
+        // Calcule, pour chaque grille tarifaire, le frais hors taxes (existant)
+        // et le frais avec toutes les taxes actives (TTF, Commission COBAC,
+        // TVA, Timbre électronique). TTF et Commission COBAC sont assises sur
+        // le montant transféré, qui varie entre tarif_1 et tarif_2 : on
+        // affiche donc une fourchette min-max plutôt qu'une valeur unique.
+        try {
+            $taxesRes = $client->get(config('keys.url_api') . 'taxes', [
+                'verify' => false,
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Authorization' => 'Bearer ' . $token
+                ]
+            ]);
+            $taxes = json_decode($taxesRes->getBody()->getContents(), true)['data'] ?? [];
+        } catch (\Exception $e) {
+            $taxes = [];
+        }
+        $taxesActives = array_filter($taxes, function ($t) {
+            return !empty($t['statut']);
+        });
+
+        foreach ($tarifications as &$t) {
+            $tranche1 = floatval($t['tarif_1'] ?? 0);
+            $tranche2 = floatval($t['tarif_2'] ?? 0);
+            $frais = floatval($t['frais'] ?? 0);
+
+            $taxesMin = 0;
+            $taxesMax = 0;
+            foreach ($taxesActives as $tax) {
+                if ($tax['type'] === 'fixe') {
+                    $montantTaxe = floatval($tax['valeur']);
+                    $taxesMin += $montantTaxe;
+                    $taxesMax += $montantTaxe;
+                } else {
+                    $taux = floatval($tax['valeur']) / 100;
+                    if (($tax['assiette'] ?? '') === 'frais') {
+                        $montantTaxe = $frais * $taux;
+                        $taxesMin += $montantTaxe;
+                        $taxesMax += $montantTaxe;
+                    } else {
+                        // assiette = montant transféré : varie entre tarif_1 et tarif_2
+                        $taxesMin += $tranche1 * $taux;
+                        $taxesMax += $tranche2 * $taux;
+                    }
+                }
+            }
+
+            $t['frais_ht'] = $frais;
+            $t['taxes_min'] = $taxesMin;
+            $t['taxes_max'] = $taxesMax;
+            $t['frais_ttc_min'] = $frais + $taxesMin;
+            $t['frais_ttc_max'] = $frais + $taxesMax;
+        }
+        unset($t);
+
         return view('tarifications.index', compact('token', 'role', 'user', 'menu', 'tarifications'));
     }
 
