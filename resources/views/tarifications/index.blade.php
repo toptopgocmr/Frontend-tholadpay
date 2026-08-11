@@ -46,7 +46,7 @@
                         <div class="card-body">
                             <h4 class="mt-0 header-title">Listing</h4>
                             <p class="text-muted mb-4">
-                                Liste de toutes les grilles tarifaires et frais GMC-FINANCES.
+                                Liste de toutes les grilles tarifaires et frais Send-Paz.
                             </p>
                             @if ($message = Session::get('success'))
                                 <div class="alert alert-success alert-block">
