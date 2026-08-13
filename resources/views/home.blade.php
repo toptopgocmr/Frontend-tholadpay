@@ -181,6 +181,23 @@
                                 </div>
                             </div>
                         </div>
+                        <!-- AJOUT (2026-08-13, demande explicite) : solde réel du compte DigitWace,
+                             même principe que la carte "Solde compte Peex" ci-dessus. -->
+                        <div class="col-lg-4">
+                            <div class="card mini-stat bg-pattern">
+                                <div class="card-body mini-stat-img">
+                                    <div class="mini-stat-icon">
+                                        <i class="dripicons-wallet bg-soft-primary text-primary float-right h4"></i>
+                                    </div>
+                                    <h6 class="text-uppercase mb-3 mt-0">Solde compte DigitWace</h6>
+                                    @if($digitwaceSolde !== null)
+                                        <h5 class="mb-3">{{$digitwaceSolde}} {{$digitwaceCurrency ?? 'XAF'}}</h5>
+                                    @else
+                                        <h5 class="mb-3 text-muted" style="font-size: 14px;">Indisponible (DigitWace injoignable)</h5>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
                         <div class="col-lg-4">
                             <div class="card mini-stat bg-pattern">
                                 <div class="card-body mini-stat-img">

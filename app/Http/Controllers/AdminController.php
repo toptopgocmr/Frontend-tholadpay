@@ -47,6 +47,11 @@ class AdminController extends Controller
         $totalSoldesDisponible = 0;
         $peexSolde = null;
         $peexActive = null;
+        // AJOUT (2026-08-13, demande explicite) : solde réel du compte DigitWace,
+        // même principe que $peexSolde ci-dessus — voir OutboundController::
+        // get_digitwace_account (doc §XIX Balance).
+        $digitwaceSolde = null;
+        $digitwaceCurrency = null;
         $finances = array();
         // AJOUT (2026-08-08) : "transactions entrantes" — montant total que cet
         // agent (ou, pour l'admin/finance_manager, TOUS les agents) a versé aux
@@ -188,6 +193,24 @@ class AdminController extends Controller
                 $peexActive = null;
             }
 
+            // AJOUT (2026-08-13, demande explicite) : solde réel du compte DigitWace
+            // (doc §XIX Balance), même schéma que le bloc Peex ci-dessus — voir
+            // OutboundController::get_digitwace_account (non protégé par jwt.auth).
+            try {
+                $digitwaceAccount = $client->get(config('keys.url_api') . 'get_digitwace_account', [
+                    'verify' => false,
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                    ]
+                ]);
+                $digitwaceAccount = json_decode($digitwaceAccount->getBody()->getContents(), true);
+                $digitwaceSolde = isset($digitwaceAccount['solde']) ? number_format(floatval($digitwaceAccount['solde'] . ''), 2) : null;
+                $digitwaceCurrency = $digitwaceAccount['currency'] ?? null;
+            } catch (\Exception $e) {
+                $digitwaceSolde = null;
+                $digitwaceCurrency = null;
+            }
+
             // AJOUT (2026-08-08) : total réseau des transactions entrantes (tous
             // agents payeurs confondus) — voir commentaire sur $totalEntrant plus haut.
             try {
@@ -324,6 +347,6 @@ class AdminController extends Controller
             }
         }
         // dump($user);
-        return view('home', compact('token', 'role', 'user', 'menu', 'admins', 'agents', 'cashiers', 'trans', 'moy', 'revenues', 'transCancel', 'transactions', 'agent', 'fraisEnvoi', 'transAttente', 'transEchec', 'montantTotal', 'prefundValid', 'prefundAnnul', 'prefundEchec', 'nbreCustomers', 'nbreFinances', 'totalSoldesDisponible', 'peexSolde', 'peexActive', 'totalEntrant', 'nbEntrant'));
+        return view('home', compact('token', 'role', 'user', 'menu', 'admins', 'agents', 'cashiers', 'trans', 'moy', 'revenues', 'transCancel', 'transactions', 'agent', 'fraisEnvoi', 'transAttente', 'transEchec', 'montantTotal', 'prefundValid', 'prefundAnnul', 'prefundEchec', 'nbreCustomers', 'nbreFinances', 'totalSoldesDisponible', 'peexSolde', 'peexActive', 'totalEntrant', 'nbEntrant', 'digitwaceSolde', 'digitwaceCurrency'));
     }
 }
