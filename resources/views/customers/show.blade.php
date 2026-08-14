@@ -129,6 +129,35 @@
                                             <th>Ville</th>
                                             <td>{{ count($userV['addresses']) > 0 ? $userV['addresses'][0]['town']['name'] : '' }}</td>
                                         </tr>
+                                        <!-- AJOUT (2026-08-14, demande explicite) : Personnel/Entreprise + infos
+                                             entreprise, voir sender_type sur Sender (mobile-tholadpay
+                                             transaction.page.ts / customermodify.page.ts). -->
+                                        <tr>
+                                            <th>Type d'expéditeur</th>
+                                            <td>{{ ($sender !== null && $sender['sender_type'] === 'B') ? 'Entreprise' : 'Personnel' }}</td>
+                                        </tr>
+                                        @if ($sender !== null && $sender['sender_type'] === 'B')
+                                        <tr>
+                                            <th>Nom de l'entreprise</th>
+                                            <td>{{ $sender['business_name'] }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Type de société</th>
+                                            <td>{{ $sender['business_type'] }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Date d'immatriculation</th>
+                                            <td>{{ !empty($sender['business_register_date']) ? $sender['business_register_date'] : '' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Activité</th>
+                                            <td>{{ $sender['business_comment'] }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Email entreprise</th>
+                                            <td>{{ $sender['email'] }}</td>
+                                        </tr>
+                                        @endif
                                         <tr>
                                             <th>Status</th>
                                             @if ($userV['status'] !== 'Rejected')

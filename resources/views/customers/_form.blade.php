@@ -48,8 +48,67 @@
                                         </div>
                                     </div>
                                 </div>
+                                <!-- AJOUT (2026-08-14, demande explicite) : type d'expéditeur (Personnel/
+                                     Business) + infos entreprise, même logique que mobile-tholadpay (voir
+                                     transaction.page.ts / customermodify.page.ts trans1.sender_type). -->
                                 <div class="row">
-                                    <div class="col-md-6">                
+                                    <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <label for="textSenderType" class="col-lg-3 col-form-label">Type d'expéditeur</label>
+                                            <div class="col-lg-9">
+                                                <select class="form-control select2" id="textSenderType" name="textSenderType" onchange="toggleBusinessFields(this.value)">
+                                                    <option value="P" @if(!($type === 'edit' && $userEdit['sender'] !== null && $userEdit['sender']['sender_type'] === 'B')) selected @endif>Personnel</option>
+                                                    <option value="B" @if($type === 'edit' && $userEdit['sender'] !== null && $userEdit['sender']['sender_type'] === 'B') selected @endif>Business (entreprise)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row" id="businessFieldsRow"
+                                     style="display: {{ ($type === 'edit' && $userEdit['sender'] !== null && $userEdit['sender']['sender_type'] === 'B') ? 'flex' : 'none' }};">
+                                    <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <label for="textBusinessName" class="col-lg-3 col-form-label">Nom de l'entreprise</label>
+                                            <div class="col-lg-9">
+                                                <input value="{{ ($type === 'edit' && $userEdit['sender'] !== null) ? $userEdit['sender']['business_name'] : '' }}" type="text" class="form-control" name="textBusinessName" id="textBusinessName">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <label for="textBusinessType" class="col-lg-3 col-form-label">Type de société</label>
+                                            <div class="col-lg-9">
+                                                <input value="{{ ($type === 'edit' && $userEdit['sender'] !== null) ? $userEdit['sender']['business_type'] : '' }}" type="text" class="form-control" name="textBusinessType" id="textBusinessType" placeholder="SARL, SAS, SA...">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <label for="textBusinessRegisterDate" class="col-lg-3 col-form-label">Date d'immatriculation</label>
+                                            <div class="col-lg-9">
+                                                <input value="{{ ($type === 'edit' && $userEdit['sender'] !== null && !empty($userEdit['sender']['business_register_date'])) ? @formaterdateTime($userEdit['sender']['business_register_date']) : '' }}" type="text" readonly class="form-control" name="textBusinessRegisterDate" id="datepicker-14">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <label for="txtEmailSender" class="col-lg-3 col-form-label">Email (Business)</label>
+                                            <div class="col-lg-9">
+                                                <input value="{{ ($type === 'edit' && $userEdit['sender'] !== null) ? $userEdit['sender']['email'] : '' }}" type="email" class="form-control" name="txtEmailSender" id="txtEmailSender">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <div class="form-group row">
+                                            <label for="textBusinessComment" class="col-lg-3 col-form-label">Description de l'activité</label>
+                                            <div class="col-lg-9">
+                                                <input value="{{ ($type === 'edit' && $userEdit['sender'] !== null) ? $userEdit['sender']['business_comment'] : '' }}" type="text" class="form-control" name="textBusinessComment" id="textBusinessComment">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
                                         <div class="form-group row">
                                             <label for="textNom" class="col-lg-3 col-form-label">Nom <i class="red">*</i></label>
                                             <div class="col-lg-9">

@@ -20,7 +20,15 @@
         $(function () {
             $("#datepicker-12").datepicker();
             $("#datepicker-12").datepicker("setDate", "10w+1");
+            // AJOUT (2026-08-14, demande explicite) : voir _form.blade.php (champs entreprise).
+            $("#datepicker-14").datepicker();
         });
+
+        // AJOUT (2026-08-14, demande explicite) : affiche/masque les champs entreprise
+        // selon le Type d'expéditeur choisi (voir onchange sur #textSenderType).
+        function toggleBusinessFields(value) {
+            document.getElementById('businessFieldsRow').style.display = (value === 'B') ? 'flex' : 'none';
+        }
     </script>
 
 @stop

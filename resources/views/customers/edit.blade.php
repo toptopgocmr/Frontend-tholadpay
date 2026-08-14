@@ -32,7 +32,24 @@
             $("#datepicker-13").datepicker({
                 defaultDate: '<?php echo formaterdateTime($userEdit['sender']['issuer_date']); ?>'
             });
+
+            // AJOUT (2026-08-14, demande explicite) : date d'immatriculation entreprise
+            // (facultative, contrairement aux dates ci-dessus) — voir _form.blade.php.
+            <?php $bizDate = !empty($userEdit['sender']['business_register_date']) ? formaterdateTime($userEdit['sender']['business_register_date']) : ''; ?>
+            @if($bizDate)
+            $("#datepicker-14").datepicker({
+                defaultDate: '{{ $bizDate }}'
+            });
+            @else
+            $("#datepicker-14").datepicker();
+            @endif
         });
+
+        // AJOUT (2026-08-14, demande explicite) : affiche/masque les champs entreprise
+        // selon le Type d'expéditeur choisi (voir onchange sur #textSenderType).
+        function toggleBusinessFields(value) {
+            document.getElementById('businessFieldsRow').style.display = (value === 'B') ? 'flex' : 'none';
+        }
     </script>
 @stop
 

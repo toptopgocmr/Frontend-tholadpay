@@ -78,9 +78,18 @@ class CustomerController extends Controller
             array('value' => 'M', 'name' => 'Masculin'),
             array('value' => 'F', 'name' => 'Feminin')
         );
+        // FIX (2026-08-14, demande explicite) : liste alignée sur mobile-tholadpay
+        // (transaction.page.ts / customermodify.page.ts) — ne contenait avant que
+        // CNI/Passport, alors que des clients enregistrés avec un autre type de
+        // pièce (via l'app mobile) existent déjà en base.
         $typeCartes = array(
-            array('value' => 'CNI', 'name' => 'Carte nationnal d\'identité'),
-            array('value' => 'Passport', 'name' => 'Passport')
+            array('value' => 'CNI', 'name' => 'Carte nationale d\'identité'),
+            array('value' => 'Passport', 'name' => 'Passeport'),
+            array('value' => 'Carte_sejour', 'name' => 'Carte de séjour'),
+            array('value' => 'Permis_conduire', 'name' => 'Permis de conduire'),
+            array('value' => 'Carte_resident', 'name' => 'Carte de Résident'),
+            array('value' => 'NIU', 'name' => 'NIU'),
+            array('value' => 'Carte_consulaire', 'name' => 'Carte consulaire')
         );
         try {
             $client = new Client();
@@ -198,6 +207,17 @@ class CustomerController extends Controller
                         $tab = explode('/', $myDate);
                         $myDate = $tab[2] . '-' . $tab[0] . '-' . $tab[1];
                     }
+                    // AJOUT (2026-08-14, demande explicite) : expéditeur Business (comme
+                    // sur mobile-tholadpay, voir transaction.page.ts) — sender_type reste
+                    // 'P' par défaut si le champ n'est pas soumis (formulaire non modifié
+                    // côté JS, ancien cache navigateur...).
+                    $businessRegisterDate = $request->get('textBusinessRegisterDate');
+                    if (!empty($businessRegisterDate)) {
+                        $tab = explode('/', $businessRegisterDate);
+                        $businessRegisterDate = $tab[2] . '-' . $tab[0] . '-' . $tab[1];
+                    } else {
+                        $businessRegisterDate = null;
+                    }
                     $sender = [
                         'cni_number' => $request->get('textNumero'),
                         'country' => 'Congo',
@@ -206,7 +226,13 @@ class CustomerController extends Controller
                         'date_exp_id' => $myDate,
                         'valid' => $valid,
                         'user_id' => $res['data']['user']['id'],
-                        'status' => $statut
+                        'status' => $statut,
+                        'sender_type' => $request->get('textSenderType') ?: 'P',
+                        'business_name' => $request->get('textBusinessName'),
+                        'business_type' => $request->get('textBusinessType'),
+                        'business_register_date' => $businessRegisterDate,
+                        'business_comment' => $request->get('textBusinessComment'),
+                        'email' => $request->get('txtEmailSender'),
                     ];
                     // dump($sender);
                     $send = $client->post(config('keys.url_api') . 'senders', [
@@ -283,9 +309,15 @@ class CustomerController extends Controller
             array('value' => 'M', 'name' => 'Masculin'),
             array('value' => 'F', 'name' => 'Feminin')
         );
+        // FIX (2026-08-14, demande explicite) : voir même correctif dans create() ci-dessus.
         $typeCartes = array(
-            array('value' => 'CNI', 'name' => 'Carte nationnal d\'identité'),
-            array('value' => 'Passport', 'name' => 'Passport')
+            array('value' => 'CNI', 'name' => 'Carte nationale d\'identité'),
+            array('value' => 'Passport', 'name' => 'Passeport'),
+            array('value' => 'Carte_sejour', 'name' => 'Carte de séjour'),
+            array('value' => 'Permis_conduire', 'name' => 'Permis de conduire'),
+            array('value' => 'Carte_resident', 'name' => 'Carte de Résident'),
+            array('value' => 'NIU', 'name' => 'NIU'),
+            array('value' => 'Carte_consulaire', 'name' => 'Carte consulaire')
         );
         try {
             $client = new Client();
@@ -416,6 +448,15 @@ class CustomerController extends Controller
                         $dateExpir = new \DateTime($request->get('textDateExp'));
                         $dateExpir = $dateExpir->format('Y-m-d');
 
+                        // AJOUT (2026-08-14, demande explicite) : expéditeur Business, voir
+                        // même correctif dans create() ci-dessus. Le champ date d'immatriculation
+                        // reste vide/facultatif (Personnel) — new \DateTime('') lèverait une
+                        // exception, contrairement à date_exp_id/issuer_date toujours obligatoires.
+                        $businessRegisterDate = $request->get('textBusinessRegisterDate');
+                        $businessRegisterDate = !empty($businessRegisterDate)
+                            ? (new \DateTime($businessRegisterDate))->format('Y-m-d')
+                            : null;
+
                         $usSend = [
                             'sex' => $request->get('textSexe'),
                             'type_id' => $request->get('textCarte'),
@@ -425,6 +466,12 @@ class CustomerController extends Controller
                             'postal_code' => $request->get('textCodePos'),
                             'cni_number' => $request->get('textNumero'),
                             'title' => ($request->get('textSexe') === 'F') ? 'Mme.' : 'Mr.',
+                            'sender_type' => $request->get('textSenderType') ?: 'P',
+                            'business_name' => $request->get('textBusinessName'),
+                            'business_type' => $request->get('textBusinessType'),
+                            'business_register_date' => $businessRegisterDate,
+                            'business_comment' => $request->get('textBusinessComment'),
+                            'email' => $request->get('txtEmailSender'),
                         ];
                         $resSender = $client->put(config('keys.url_api') . 'senders/' . $userEdit['sender']['id'], [
                             'verify' => false,

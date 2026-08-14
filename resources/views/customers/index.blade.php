@@ -72,6 +72,9 @@
                                     <th>Email</th>
                                     <th>Telephone</th>
                                     <th>Adresse</th>
+                                    <!-- AJOUT (2026-08-14, demande explicite) : Personnel/Entreprise, voir
+                                         sender_type sur Sender (mobile-tholadpay transaction.page.ts). -->
+                                    <th>Type</th>
                                     <th>Enabled</th>
                                     <th>Actions</th>
                                 </tr>
@@ -84,6 +87,7 @@
                                         <td title="{{$cust['user']['email']}}"> {{ \Illuminate\Support\Str::limit($cust['user']['email'], $limit=20, $end='...') }}</td>
                                         <td> {{ $cust['user']['phone_number'] }}</td>
                                         <td> {{ count($cust['user']['addresses']) > 0 ? \Illuminate\Support\Str::limit($cust['user']['addresses'][0]['name'], $limit=15, $end='...') : '' }}</td>
+                                        <td> {{ (isset($cust['sender']['sender_type']) && $cust['sender']['sender_type'] === 'B') ? 'Entreprise' : 'Personnel' }}</td>
                                         <td>
                                             @if ($cust['user']['status'] !== 'Rejected')
                                                 <!-- {{ $cust['user']['is_active'] === 0 ? 'Inactif' : 'Actif' }} -->
