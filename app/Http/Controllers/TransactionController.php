@@ -1526,17 +1526,25 @@ class TransactionController extends Controller
                                 // confirmation automatiquement (avec 1 retry), mais si elle échoue quand
                                 // même, on l'affiche clairement ici plutôt que de laisser croire que tout
                                 // est réglé.
-                                if (($p['confirm_status'] ?? null) === 'failed') {
+                                // FIX (2026-08-15) : confirmDigitwaceTransaction() peut désormais renvoyer
+                                // 'uncertain' (appel /transaction/confirm réussi en HTTP mais avec un code
+                                // de statut ne correspondant à aucun code de succès documenté — voir
+                                // OutboundController::DIGITWACE_CONFIRM_SUCCESS_CODES), en plus de 'failed'
+                                // (exception HTTP). Ces deux cas doivent bloquer le message "Paiement
+                                // effectué avec succès" : seul 'confirmed' signifie que DigitWace a
+                                // réellement validé la transaction.
+                                if (in_array($p['confirm_status'] ?? null, ['failed', 'uncertain'], true)) {
                                     // NB : confirm_status n'existe que sur les réponses DigitWace (voir
                                     // OutboundController::confirmDigitwaceTransaction) — $partnerLabel n'est
                                     // pas défini dans cette méthode (contrairement à index()/
                                     // checkStatusOfTransaction()), mais ce cas ne peut de toute façon se
                                     // produire que pour ce partenaire.
+                                    $confirmLabel = ($p['confirm_status'] ?? null) === 'uncertain' ? 'NON CONFIRMÉE (statut incertain)' : 'NON CONFIRMÉE';
                                     return redirect()->route('transaction_list')->with('error',
-                                        'Transaction créée chez DigitWace mais NON CONFIRMÉE ('
+                                        'Transaction créée chez DigitWace mais ' . $confirmLabel . ' ('
                                         . ($p['confirm_message'] ?? 'raison inconnue')
                                         . '). Référence : ' . ($p['reference'] ?? $transaction['ranking'])
-                                        . '. Contactez le support DigitWace pour confirmer manuellement.');
+                                        . '. Vérifiez le statut réel avant de considérer la transaction comme payée, ou contactez le support DigitWace.');
                                 }
                                 if ($isInternalTx && $pickupCode) {
                                     return redirect()->route('transaction_list')->with('success',
