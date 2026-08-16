@@ -151,14 +151,18 @@ class CurrencyController extends Controller
         $user = $request->session()->get('user');
         $menu = 'Currency';
         $client = new Client();
-        $currency = $client->get(config('keys.url_api') . 'currencies/' . $id, [
-            'verify' => false,
-            'headers' => [
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Bearer ' . $token
-            ]
-        ]);
-        $currency = json_decode($currency->getBody()->getContents(), true);
+        try {
+            $currency = $client->get(config('keys.url_api') . 'currencies/' . $id, [
+                'verify' => false,
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Authorization' => 'Bearer ' . $token
+                ]
+            ]);
+            $currency = json_decode($currency->getBody()->getContents(), true);
+        } catch (\Exception $e) {
+            return redirect()->route('currency_list')->with('error', 'Devise introuvable ou erreur lors du chargement.');
+        }
         // dump($town);
         return view('currencies.show', compact('token', 'role', 'user', 'menu', 'currency'));
     }

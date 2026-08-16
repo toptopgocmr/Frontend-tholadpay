@@ -27,7 +27,7 @@
             @if($role === 'administrator' || $role === 'finance_manager')
                 <div class="row">
                     <div class="col-lg-4">
-                        <div class="card mini-stat bg-pattern">
+                        <a href="{{ route('user_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                             <div class="card-body mini-stat-img">
                                 <div class="mini-stat-icon">
                                     <i class="dripicons-broadcast bg-soft-primary text-primary float-right h4"></i>
@@ -35,10 +35,10 @@
                                 <h6 class="text-uppercase mb-3 mt-0">Utilisateurs</h6>
                                 <h5 class="mb-3">{{$admins}}</h5>
                             </div>
-                        </div>
+                        </a>
                     </div>
                     <div class="col-lg-4">
-                        <div class="card mini-stat bg-pattern">
+                        <a href="{{ route('user_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                             <div class="card-body mini-stat-img">
                                 <div class="mini-stat-icon">
                                     <i class="dripicons-broadcast bg-soft-primary text-primary float-right h4"></i>
@@ -46,10 +46,10 @@
                                 <h6 class="text-uppercase mb-3 mt-0">Partner Managing Agent</h6>
                                 <h5 class="mb-3">{{$agents}}</h5>
                             </div>
-                        </div>
+                        </a>
                     </div>
                     <div class="col-lg-4">
-                        <div class="card mini-stat bg-pattern">
+                        <a href="{{ route('user_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                             <div class="card-body mini-stat-img">
                                 <div class="mini-stat-icon">
                                     <i class="dripicons-broadcast bg-soft-primary text-primary float-right h4"></i>
@@ -57,10 +57,10 @@
                                 <h6 class="text-uppercase mb-3 mt-0">Partner Service Agent</h6>
                                 <h5 class="mb-3">{{$cashiers}}</h5>
                             </div>
-                        </div>
+                        </a>
                     </div>
                     <div class="col-lg-4">
-                        <div class="card mini-stat bg-pattern">
+                        <a href="{{ route('transaction_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                             <div class="card-body mini-stat-img">
                                 <div class="mini-stat-icon">
                                     <i class="dripicons-box bg-soft-primary text-primary float-right h4"></i>
@@ -68,10 +68,10 @@
                                 <h6 class="text-uppercase mb-3 mt-0">Total montant envoyé</h6>
                                 <h5 class="mb-3">{{$revenues}} XAF</h5>
                             </div>
-                        </div>
+                        </a>
                     </div>
                     <div class="col-lg-4">
-                        <div class="card mini-stat bg-pattern">
+                        <a href="{{ route('transaction_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                             <div class="card-body mini-stat-img">
                                 <div class="mini-stat-icon">
                                     <i class="dripicons-tags bg-soft-primary text-primary float-right h4"></i>
@@ -79,12 +79,12 @@
                                 <h6 class="text-uppercase mb-3 mt-0">Total des frais</h6>
                                 <h5 class="mb-3">{{$fraisEnvoi}} XAF</h5>
                             </div>
-                        </div>
+                        </a>
                     </div>
                     <!-- AJOUT (2026-08-08) : total réseau des transactions entrantes (tous
                          agents payeurs de retraits internes confondus) — voir AdminController. -->
                     <div class="col-lg-4">
-                        <div class="card mini-stat bg-pattern">
+                        <a href="{{ route('internal_payout') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                             <div class="card-body mini-stat-img">
                                 <div class="mini-stat-icon">
                                     <i class="dripicons-wallet bg-soft-primary text-primary float-right h4"></i>
@@ -92,10 +92,10 @@
                                 <h6 class="text-uppercase mb-3 mt-0">Transactions entrantes (montant reçu)</h6>
                                 <h5 class="mb-3">{{$totalEntrant}} XAF</h5>
                             </div>
-                        </div>
+                        </a>
                     </div>
                     <div class="col-lg-4">
-                        <div class="card mini-stat bg-pattern">
+                        <a href="{{ route('transaction_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                             <div class="card-body mini-stat-img">
                                 <div class="mini-stat-icon">
                                     <i class="dripicons-broadcast bg-soft-primary text-primary float-right h4"></i>
@@ -103,7 +103,7 @@
                                 <h6 class="text-uppercase mb-3 mt-0">Transactions reussies</h6>
                                 <h5 class="mb-3">{{$trans}}</h5>
                             </div>
-                        </div>
+                        </a>
                     </div>
                     <!-- <div class="col-lg-4">
                         <div class="card mini-stat bg-pattern">
@@ -118,7 +118,7 @@
                     </div> -->
                     @if($role === 'administrator')
                         <div class="col-lg-4">
-                            <div class="card mini-stat bg-pattern">
+                            <a href="{{ route('transaction_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                                 <div class="card-body mini-stat-img">
                                     <div class="mini-stat-icon">
                                         <i class="dripicons-broadcast bg-soft-primary text-primary float-right h4"></i>
@@ -126,10 +126,10 @@
                                     <h6 class="text-uppercase mb-3 mt-0">Transactions en attente</h6>
                                     <h5 class="mb-3">{{$transAttente}}</h5>
                                 </div>
-                            </div>
+                            </a>
                         </div>
                         <div class="col-lg-4">
-                            <div class="card mini-stat bg-pattern">
+                            <a href="{{ route('transaction_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                                 <div class="card-body mini-stat-img">
                                     <div class="mini-stat-icon">
                                         <i class="dripicons-box bg-soft-primary text-primary float-right h4"></i>
@@ -137,10 +137,10 @@
                                     <h6 class="text-uppercase mb-3 mt-0">Transactions annulées</h6>
                                     <h5 class="mb-3">{{$transCancel}}</h5>
                                 </div>
-                            </div>
+                            </a>
                         </div>
                         <div class="col-lg-4">
-                            <div class="card mini-stat bg-pattern">
+                            <a href="{{ route('transaction_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                                 <div class="card-body mini-stat-img">
                                     <div class="mini-stat-icon">
                                         <i class="dripicons-box bg-soft-primary text-primary float-right h4"></i>
@@ -148,11 +148,11 @@
                                     <h6 class="text-uppercase mb-3 mt-0">Transactions échouées</h6>
                                     <h5 class="mb-3">{{$transEchec}}</h5>
                                 </div>
-                            </div>
+                            </a>
                         </div>
 
                         <div class="col-lg-4">
-                            <div class="card mini-stat bg-pattern">
+                            <a href="{{ route('user_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                                 <div class="card-body mini-stat-img">
                                     <div class="mini-stat-icon">
                                         <i class="dripicons-box bg-soft-primary text-primary float-right h4"></i>
@@ -160,7 +160,7 @@
                                     <h6 class="text-uppercase mb-3 mt-0">Total solde disponible</h6>
                                     <h5 class="mb-3">{{$totalSoldesDisponible}} XAF</h5>
                                 </div>
-                            </div>
+                            </a>
                         </div>
                         <div class="col-lg-4">
                             <div class="card mini-stat bg-pattern">
@@ -199,7 +199,7 @@
                             </div>
                         </div>
                         <div class="col-lg-4">
-                            <div class="card mini-stat bg-pattern">
+                            <a href="{{ route('user_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                                 <div class="card-body mini-stat-img">
                                     <div class="mini-stat-icon">
                                         <i class="dripicons-tags bg-soft-primary text-primary float-right h4"></i>
@@ -207,10 +207,10 @@
                                     <h6 class="text-uppercase mb-3 mt-0">Finance managers</h6>
                                     <h5 class="mb-3">{{$nbreFinances}}</h5>
                                 </div>
-                            </div>
+                            </a>
                         </div>
                         <div class="col-lg-4">
-                            <div class="card mini-stat bg-pattern">
+                            <a href="{{ route('customer_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                                 <div class="card-body mini-stat-img">
                                     <div class="mini-stat-icon">
                                         <i class="dripicons-broadcast bg-soft-primary text-primary float-right h4"></i>
@@ -218,10 +218,10 @@
                                     <h6 class="text-uppercase mb-3 mt-0">Les clients</h6>
                                     <h5 class="mb-3">{{$nbreCustomers}}</h5>
                                 </div>
-                            </div>
+                            </a>
                         </div>
                         <div class="col-lg-4">
-                            <div class="card mini-stat bg-pattern">
+                            <a href="{{ route('prefund_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                                 <div class="card-body mini-stat-img">
                                     <div class="mini-stat-icon">
                                         <i class="dripicons-box bg-soft-primary text-primary float-right h4"></i>
@@ -229,13 +229,13 @@
                                     <h6 class="text-uppercase mb-3 mt-0">Total Prefundings validés</h6>
                                     <h5 class="mb-3">{{$prefundValid}} XAF</h5>
                                 </div>
-                            </div>
+                            </a>
                         </div>
                     @endif
                     
                     @if($role === 'finance_manager')
                         <div class="col-lg-4">
-                            <div class="card mini-stat bg-pattern">
+                            <a href="{{ route('prefund_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                                 <div class="card-body mini-stat-img">
                                     <div class="mini-stat-icon">
                                         <i class="dripicons-box bg-soft-primary text-primary float-right h4"></i>
@@ -243,10 +243,10 @@
                                     <h6 class="text-uppercase mb-3 mt-0">Prefunding Validé</h6>
                                     <h5 class="mb-3">{{$prefundValid}} XAF</h5>
                                 </div>
-                            </div>
+                            </a>
                         </div>
                         <div class="col-lg-4">
-                            <div class="card mini-stat bg-pattern">
+                            <a href="{{ route('prefund_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                                 <div class="card-body mini-stat-img">
                                     <div class="mini-stat-icon">
                                         <i class="dripicons-box bg-soft-primary text-primary float-right h4"></i>
@@ -254,10 +254,10 @@
                                     <h6 class="text-uppercase mb-3 mt-0">Prefunding en attente</h6>
                                     <h5 class="mb-3">{{$prefundAnnul}} XAF</h5>
                                 </div>
-                            </div>
+                            </a>
                         </div>
                         <div class="col-lg-4">
-                            <div class="card mini-stat bg-pattern">
+                            <a href="{{ route('prefund_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                                 <div class="card-body mini-stat-img">
                                     <div class="mini-stat-icon">
                                         <i class="dripicons-tags bg-soft-primary text-primary float-right h4"></i>
@@ -265,7 +265,7 @@
                                     <h6 class="text-uppercase mb-3 mt-0">Prefunding échoué</h6>
                                     <h5 class="mb-3">{{$prefundEchec}} XAF</h5>
                                 </div>
-                            </div>
+                            </a>
                         </div>
                     @endif
                 </div>
@@ -274,7 +274,7 @@
                 <div class="row">
                     @if($role === 'agent')
                     <div class="col-lg-4">
-                        <div class="card mini-stat bg-pattern">
+                        <a href="{{ route('user_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                             <div class="card-body mini-stat-img">
                                 <div class="mini-stat-icon">
                                     <i class="dripicons-broadcast bg-soft-primary text-primary float-right h4"></i>
@@ -282,7 +282,7 @@
                                 <h6 class="text-uppercase mb-3 mt-0">Partner Service Agent</h6>
                                 <h5 class="mb-3">{{$cashiers}}</h5>
                             </div>
-                        </div>
+                        </a>
                     </div>
                     @endif
                     <div class="col-lg-4">
@@ -297,7 +297,7 @@
                         </div>
                     </div>
                     <div class="col-lg-4">
-                        <div class="card mini-stat bg-pattern">
+                        <a href="{{ route('transaction_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                             <div class="card-body mini-stat-img">
                                 <div class="mini-stat-icon">
                                     <i class="dripicons-tags bg-soft-primary text-primary float-right h4"></i>
@@ -305,10 +305,10 @@
                                 <h6 class="text-uppercase mb-3 mt-0">Moyenne Transactions</h6>
                                 <h5 class="mb-3">{{$moy}} XAF</h5>
                             </div>
-                        </div>
+                        </a>
                     </div>
                     <div class="col-lg-4">
-                        <div class="card mini-stat bg-pattern">
+                        <a href="{{ route('transaction_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                             <div class="card-body mini-stat-img">
                                 <div class="mini-stat-icon">
                                     <i class="dripicons-box bg-soft-primary text-primary float-right h4"></i>
@@ -316,10 +316,10 @@
                                 <h6 class="text-uppercase mb-3 mt-0">Total montant envoyé</h6>
                                 <h5 class="mb-3">{{$revenues}} XAF</h5>
                             </div>
-                        </div>
+                        </a>
                     </div>
                     <div class="col-lg-4">
-                        <div class="card mini-stat bg-pattern">
+                        <a href="{{ route('transaction_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                             <div class="card-body mini-stat-img">
                                 <div class="mini-stat-icon">
                                     <i class="dripicons-tags bg-soft-primary text-primary float-right h4"></i>
@@ -327,14 +327,14 @@
                                 <h6 class="text-uppercase mb-3 mt-0">Total des frais</h6>
                                 <h5 class="mb-3">{{$fraisEnvoi}} XAF</h5>
                             </div>
-                        </div>
+                        </a>
                     </div>
                     <!-- AJOUT (2026-08-08) : montant total versé aux bénéficiaires en tant
                          qu'agent PAYEUR de transferts internes (voir InternalTransferController::
                          payout_internal_transaction) — distinct de "Total montant envoyé" (argent
                          envoyé en tant qu'EXPÉDITEUR). -->
                     <div class="col-lg-4">
-                        <div class="card mini-stat bg-pattern">
+                        <a href="{{ route('internal_payout') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                             <div class="card-body mini-stat-img">
                                 <div class="mini-stat-icon">
                                     <i class="dripicons-wallet bg-soft-primary text-primary float-right h4"></i>
@@ -342,10 +342,10 @@
                                 <h6 class="text-uppercase mb-3 mt-0">Transactions entrantes (montant reçu)</h6>
                                 <h5 class="mb-3">{{$totalEntrant}} XAF</h5>
                             </div>
-                        </div>
+                        </a>
                     </div>
                     <div class="col-lg-4">
-                        <div class="card mini-stat bg-pattern">
+                        <a href="{{ route('internal_payout') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                             <div class="card-body mini-stat-img">
                                 <div class="mini-stat-icon">
                                     <i class="dripicons-wallet bg-soft-primary text-primary float-right h4"></i>
@@ -353,11 +353,11 @@
                                 <h6 class="text-uppercase mb-3 mt-0">Nombre transactions entrantes</h6>
                                 <h5 class="mb-3">{{$nbEntrant}}</h5>
                             </div>
-                        </div>
+                        </a>
                     </div>
                     @if($role === 'cashier')
                         <div class="col-lg-4">
-                            <div class="card mini-stat bg-pattern">
+                            <a href="{{ route('customer_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                                 <div class="card-body mini-stat-img">
                                     <div class="mini-stat-icon">
                                         <i class="dripicons-tags bg-soft-primary text-primary float-right h4"></i>
@@ -365,12 +365,12 @@
                                     <h6 class="text-uppercase mb-3 mt-0">Mes clients</h6>
                                     <h5 class="mb-3">{{$nbreCustomers}}</h5>
                                 </div>
-                            </div>
+                            </a>
                         </div>
                     @endif
                     @if($role === 'agent')
                         <div class="col-lg-4">
-                            <div class="card mini-stat bg-pattern">
+                            <a href="{{ route('transaction_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                                 <div class="card-body mini-stat-img">
                                     <div class="mini-stat-icon">
                                         <i class="dripicons-broadcast bg-soft-primary text-primary float-right h4"></i>
@@ -378,10 +378,10 @@
                                     <h6 class="text-uppercase mb-3 mt-0">Transactions réussies</h6>
                                     <h5 class="mb-3">{{$trans}}</h5>
                                 </div>
-                            </div>
+                            </a>
                         </div>
                         <div class="col-lg-4">
-                            <div class="card mini-stat bg-pattern">
+                            <a href="{{ route('transaction_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                                 <div class="card-body mini-stat-img">
                                     <div class="mini-stat-icon">
                                         <i class="dripicons-broadcast bg-soft-primary text-primary float-right h4"></i>
@@ -389,10 +389,10 @@
                                     <h6 class="text-uppercase mb-3 mt-0">Transactions en attente</h6>
                                     <h5 class="mb-3">{{$transAttente}}</h5>
                                 </div>
-                            </div>
+                            </a>
                         </div>
                         <div class="col-lg-4">
-                            <div class="card mini-stat bg-pattern">
+                            <a href="{{ route('transaction_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                                 <div class="card-body mini-stat-img">
                                     <div class="mini-stat-icon">
                                         <i class="dripicons-box bg-soft-primary text-primary float-right h4"></i>
@@ -400,10 +400,10 @@
                                     <h6 class="text-uppercase mb-3 mt-0">Transactions annulées</h6>
                                     <h5 class="mb-3">{{$transCancel}}</h5>
                                 </div>
-                            </div>
+                            </a>
                         </div>
                         <div class="col-lg-4">
-                            <div class="card mini-stat bg-pattern">
+                            <a href="{{ route('transaction_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                                 <div class="card-body mini-stat-img">
                                     <div class="mini-stat-icon">
                                         <i class="dripicons-box bg-soft-primary text-primary float-right h4"></i>
@@ -411,7 +411,7 @@
                                     <h6 class="text-uppercase mb-3 mt-0">Transactions échouées</h6>
                                     <h5 class="mb-3">{{$transEchec}}</h5>
                                 </div>
-                            </div>
+                            </a>
                         </div>
                     @endif
                 </div>
@@ -419,7 +419,7 @@
             @if($role === 'technical_support')
                 <div class="row">                    
                     <div class="col-lg-4">
-                        <div class="card mini-stat bg-pattern">
+                        <a href="{{ route('transaction_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                             <div class="card-body mini-stat-img">
                                 <div class="mini-stat-icon">
                                     <i class="dripicons-box bg-soft-primary text-primary float-right h4"></i>
@@ -427,10 +427,10 @@
                                 <h6 class="text-uppercase mb-3 mt-0">Total montant envoyé</h6>
                                 <h5 class="mb-3">{{$revenues}} XAF</h5>
                             </div>
-                        </div>
+                        </a>
                     </div>
                     <div class="col-lg-4">
-                        <div class="card mini-stat bg-pattern">
+                        <a href="{{ route('transaction_list') }}" class="card mini-stat bg-pattern d-block" style="text-decoration:none;color:inherit;cursor:pointer;">
                             <div class="card-body mini-stat-img">
                                 <div class="mini-stat-icon">
                                     <i class="dripicons-tags bg-soft-primary text-primary float-right h4"></i>
@@ -438,7 +438,7 @@
                                 <h6 class="text-uppercase mb-3 mt-0">Total des frais</h6>
                                 <h5 class="mb-3">{{$fraisEnvoi}} XAF</h5>
                             </div>
-                        </div>
+                        </a>
                     </div>
                 </div>
             @endif

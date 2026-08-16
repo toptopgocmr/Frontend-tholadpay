@@ -253,15 +253,19 @@ class CountryController extends Controller
         $user = $request->session()->get('user');
         $menu = 'Country';
         $client = new Client();
-        $country = $client->get(config('keys.url_api') . 'countries/' . $id, [
-        // $country = $client->get(config('keys.url_api') . 'countries?id=' . $id, [
-            'verify' => false,
-            'headers' => [
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Bearer ' . $token
-            ]
-        ]);
-        $country = json_decode($country->getBody()->getContents(), true);
+        try {
+            $country = $client->get(config('keys.url_api') . 'countries/' . $id, [
+            // $country = $client->get(config('keys.url_api') . 'countries?id=' . $id, [
+                'verify' => false,
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Authorization' => 'Bearer ' . $token
+                ]
+            ]);
+            $country = json_decode($country->getBody()->getContents(), true);
+        } catch (\Exception $e) {
+            return redirect()->route('country_list')->with('error', 'Pays introuvable ou erreur lors du chargement.');
+        }
         // if(count($country) > 0)
         //     $country = $country[0];
         // dump($country);

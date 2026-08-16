@@ -144,14 +144,18 @@ class ZoneController extends Controller
         $user = $request->session()->get('user');
         $menu = 'Zone';
         $client = new Client();
-        $zone = $client->get(config('keys.url_api') . 'zones/' . $id, [
-            'verify' => false,
-            'headers' => [
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Bearer ' . $token
-            ]
-        ]);
-        $zone = json_decode($zone->getBody()->getContents(), true);
+        try {
+            $zone = $client->get(config('keys.url_api') . 'zones/' . $id, [
+                'verify' => false,
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Authorization' => 'Bearer ' . $token
+                ]
+            ]);
+            $zone = json_decode($zone->getBody()->getContents(), true);
+        } catch (\Exception $e) {
+            return redirect()->route('zone_list')->with('error', 'Zone introuvable ou erreur lors du chargement.');
+        }
 //        dump($zone);
         return view('zones.show', compact('token', 'role', 'user', 'menu', 'zone'));
     }

@@ -164,14 +164,18 @@ class TaxController extends Controller
         $user = $request->session()->get('user');
         $menu = 'Tax';
         $client = new Client();
-        $tax = $client->get(config('keys.url_api') . 'taxes/' . $id . '?_includes=zone', [
-            'verify' => false,
-            'headers' => [
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Bearer ' . $token
-            ]
-        ]);
-        $tax = json_decode($tax->getBody()->getContents(), true);
+        try {
+            $tax = $client->get(config('keys.url_api') . 'taxes/' . $id . '?_includes=zone', [
+                'verify' => false,
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Authorization' => 'Bearer ' . $token
+                ]
+            ]);
+            $tax = json_decode($tax->getBody()->getContents(), true);
+        } catch (\Exception $e) {
+            return redirect()->route('tax_list')->with('error', 'Taxe introuvable ou erreur lors du chargement.');
+        }
         return view('taxes.show', compact('token', 'role', 'user', 'menu', 'tax'));
     }
 

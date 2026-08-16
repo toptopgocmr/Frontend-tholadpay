@@ -233,14 +233,18 @@ class TarificationController extends Controller
         $user = $request->session()->get('user');
         $menu = 'Tarif';
         $client = new Client();
-        $tarification = $client->get(config('keys.url_api') . 'tarifications/' . $id, [
-            'verify' => false,
-            'headers' => [
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Bearer ' . $token
-            ]
-        ]);
-        $tarification = json_decode($tarification->getBody()->getContents(), true);
+        try {
+            $tarification = $client->get(config('keys.url_api') . 'tarifications/' . $id, [
+                'verify' => false,
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Authorization' => 'Bearer ' . $token
+                ]
+            ]);
+            $tarification = json_decode($tarification->getBody()->getContents(), true);
+        } catch (\Exception $e) {
+            return redirect()->route('tarif_list')->with('error', 'Grille tarifaire introuvable ou erreur lors du chargement.');
+        }
         return view('transactions.show', compact('token', 'role', 'user', 'menu', 'tarification'));
     }
 

@@ -768,15 +768,23 @@ class UserController extends Controller
             $userV = json_decode($userV->getBody()->getContents(), true);
             // dump($userV);
             // dump($userV['agent']['agent']);
+            // FIX : on garde une référence vers l'agent de la SESSION (l'utilisateur
+            // connecté) avant que $agent ne soit réaffecté ci-dessous à l'agent de
+            // l'utilisateur CONSULTÉ. Le contrôle d'accès plus bas a besoin de
+            // comparer ces deux notions distinctes ; utiliser la variable $agt
+            // (jamais définie) provoquait "Undefined variable $agt" + accès de
+            // tableau sur null pour tout agent consultant la fiche d'un utilisateur.
+            $sessionAgent = $agent;
             if ($userV !== null) {
-                $agent = ($userV['agent']['agent'] !== null) ? $userV['agent']['agent'] : $userV['agent'];
+                $userAgentInfo = $userV['agent'] ?? null;
+                $agent = ($userAgentInfo !== null && ($userAgentInfo['agent'] ?? null) !== null) ? $userAgentInfo['agent'] : $userAgentInfo;
                 // dump($agent);
-                $roleUser = count($userV['user_roles']) > 0 ? $userV['user_roles'][0]['role'] : null;
-                $rle = count($userV['user_roles']) > 0 ? ucwords($userV['user_roles'][0]['role']['name']) : ''; // role du user
+                $roleUser = count($userV['user_roles'] ?? []) > 0 ? $userV['user_roles'][0]['role'] : null;
+                $rle = count($userV['user_roles'] ?? []) > 0 ? ucwords($userV['user_roles'][0]['role']['name']) : ''; // role du user
             }
             // dump($userV);
             // dump($roleUser, $rle);
-            if ($role === 'administrator' || $role === 'finance_manager' || ($role === 'agent' && $userV['agent']['agent_id'] === $agt['id'])) {
+            if ($role === 'administrator' || $role === 'finance_manager' || ($role === 'agent' && isset($userV['agent']['agent_id'], $sessionAgent['id']) && $userV['agent']['agent_id'] === $sessionAgent['id'])) {
                 $link = 'transactions?_includes=sender,sender.user,user,user.agent,outbound.bank,outbound.mobile&per_page=10';
                 if ($agent !== null) { // si agent est null, on charge plus de transaction
                     $link = 'transactions?_includes=sender,sender.user,user,user.agent,outbound.bank,outbound.mobile&agent_id=' . $agent['id'] . '&per_page=3000';

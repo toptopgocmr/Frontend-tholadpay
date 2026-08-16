@@ -46,15 +46,15 @@
                                         <thead>
                                         <tr>
                                             <th>Name</th>
-                                            <th>{{$role['name']}}</th>
+                                            <th>{{$roleData['name']}}</th>
                                         </tr>
                                         <tr>
                                             <th>Display Name</th>
-                                            <th>{{$role['display_name']}}</th>
+                                            <th>{{$roleData['display_name']}}</th>
                                         </tr>
                                         <tr>
                                             <th>Description</th>
-                                            <th>{{$role['description']}}</th>
+                                            <th>{{$roleData['description']}}</th>
                                         </tr>
                                         </thead>
                                     </table>
@@ -68,7 +68,7 @@
                                             </th>
                                         </tr>
                                         <tr>
-                                            <th colspan="2"><a href="{{route('role_edit', $role['id'])}}"><i
+                                            <th colspan="2"><a href="{{route('role_edit', $roleData['id'])}}"><i
                                                             class="mdi mdi-circle-edit-outline mr-2"></i> Modifier</a>
                                             </th>
                                         </tr>

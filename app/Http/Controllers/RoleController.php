@@ -151,16 +151,23 @@ class RoleController extends Controller
         $user = $request->session()->get('user');
         $menu = 'Role';
         $client = new Client();
-        $role = $client->get(config('keys.url_api') . 'roles/' . $id, [
-            'verify' => false,
-            'headers' => [
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Bearer ' . $token
-            ]
-        ]);
-        $role = json_decode($role->getBody()->getContents(), true);
+        // FIX : ne pas écraser $role (rôle de session de l'utilisateur connecté,
+        // utilisé par le menu latéral pour les contrôles d'accès) avec l'objet
+        // rôle renvoyé par l'API — utiliser une variable distincte $roleData.
+        try {
+            $roleData = $client->get(config('keys.url_api') . 'roles/' . $id, [
+                'verify' => false,
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Authorization' => 'Bearer ' . $token
+                ]
+            ]);
+            $roleData = json_decode($roleData->getBody()->getContents(), true);
+        } catch (\Exception $e) {
+            return redirect()->route('role_list')->with('error', 'Rôle introuvable ou erreur lors du chargement.');
+        }
         // dump($town);
-        return view('roles.show', compact('token', 'role', 'user', 'menu', 'role'));
+        return view('roles.show', compact('token', 'role', 'user', 'menu', 'roleData'));
     }
 
     public function delete(Request $request)

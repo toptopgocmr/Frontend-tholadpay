@@ -220,8 +220,8 @@ class PrefundController extends Controller
         } else {
             return redirect()->route('admin');
         }*/
-        $isOwner = isset($prefund['agent']['id']) && $prefund['agent']['id'] === $agent['id'];
-        $isSubAgent = isset($prefund['agent']['agent']['id']) && $prefund['agent']['agent']['id'] === $agent['id'];
+        $isOwner = isset($prefund['agent']['id'], $agent['id']) && $prefund['agent']['id'] === $agent['id'];
+        $isSubAgent = isset($prefund['agent']['agent']['id'], $agent['id']) && $prefund['agent']['agent']['id'] === $agent['id'];
         $isAdmin11 = $role === 'administrator';
         $isFinanceManager = $role === 'finance_manager';
         if ($isOwner || $isAdmin11 || $isSubAgent || $isFinanceManager) {

@@ -161,14 +161,18 @@ class TownController extends Controller
         $user = $request->session()->get('user');
         $menu = 'Town';
         $client = new Client();
-        $town = $client->get(config('keys.url_api') . 'towns/' . $id, [
-            'verify' => false,
-            'headers' => [
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Bearer ' . $token
-            ]
-        ]);
-        $town = json_decode($town->getBody()->getContents(), true);
+        try {
+            $town = $client->get(config('keys.url_api') . 'towns/' . $id, [
+                'verify' => false,
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Authorization' => 'Bearer ' . $token
+                ]
+            ]);
+            $town = json_decode($town->getBody()->getContents(), true);
+        } catch (\Exception $e) {
+            return redirect()->route('town_list')->with('error', 'Ville introuvable ou erreur lors du chargement.');
+        }
 //        dump($town);
         return view('towns.show', compact('token', 'role', 'user', 'menu', 'town'));
     }

@@ -184,14 +184,18 @@ class NoteController extends Controller
         $user = $request->session()->get('user');
         $menu = 'Note';
         $client = new Client();
-        $note = $client->get(config('keys.url_api') . 'notes/' . $id, [
-            'verify' => false,
-            'headers' => [
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Bearer ' . $token
-            ]
-        ]);
-        $note = json_decode($note->getBody()->getContents(), true);
+        try {
+            $note = $client->get(config('keys.url_api') . 'notes/' . $id, [
+                'verify' => false,
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Authorization' => 'Bearer ' . $token
+                ]
+            ]);
+            $note = json_decode($note->getBody()->getContents(), true);
+        } catch (\Exception $e) {
+            return redirect()->route('note_list')->with('error', 'Note introuvable ou erreur lors du chargement.');
+        }
         // dump($note);
         return view('notes.show', compact('token', 'role', 'user', 'menu', 'note'));
     }
