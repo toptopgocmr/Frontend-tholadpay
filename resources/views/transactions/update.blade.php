@@ -76,11 +76,18 @@
                                         // Pickup. Option réactivée ; voir les deux méthodes citées pour le
                                         // pendant serveur de ce correctif.
                                         $isCashPickup = isset($transaction['outbound']['cash']) && $transaction['outbound']['cash'] !== null;
+                                        // AJOUT (2026-08-20) : PawaPay n'est intégré que pour le mobile money
+                                        // (voir OutboundController::sendPawapayRemittance, qui rejette
+                                        // explicitement banque/espèces) — option désactivée pour ces deux cas,
+                                        // même logique que Peex désactivé sur Cash Pickup ci-dessus.
+                                        $isBankTx = isset($transaction['outbound']['bank']) && $transaction['outbound']['bank'] !== null;
+                                        $pawapayDisabled = $isCashPickup || $isBankTx;
                                     @endphp
                                                     <div class="col-8">
                                                         <select class="form-control" name="partner" id="partner" onchange="tholadpayToggleDigitwaceFields()">
                                                             <option value="peex" {{ $isCashPickup ? 'disabled' : '' }} {{ (($partnerChoice ?? 'peex') === 'peex') ? 'selected' : '' }}>Peex</option>
                                                             <option value="digitwace" {{ (($partnerChoice ?? 'peex') === 'digitwace') ? 'selected' : '' }}>DigitWace</option>
+                                                            <option value="pawapay" {{ $pawapayDisabled ? 'disabled' : '' }} {{ (($partnerChoice ?? 'peex') === 'pawapay') ? 'selected' : '' }}>PawaPay</option>
                                                             {{-- Transfert 100% interne (sans Peex ni DigitWace) — voir
                                                                  InternalTransferController. Le bénéficiaire retire en espèces avec
                                                                  un code, chez n'importe quel agent Send-Paz du pays destinataire. --}}
@@ -88,6 +95,8 @@
                                                         </select>
                                                         @if($isCashPickup)
                                                             <small class="text-muted">Retrait en espèces : via DigitWace, ou en interne (réseau Send-Paz, sans partenaire externe).</small>
+                                                        @elseif($isBankTx)
+                                                            <small class="text-muted">Virement bancaire : PawaPay non disponible (mobile money uniquement).</small>
                                                         @endif
                                                     </div>
                                                 </div>
@@ -154,6 +163,71 @@
                                                 </div>
                                             </div>
                                             <p class="text-muted">DigitWace impose des valeurs précises (relation / origine des fonds / raison — voir étape 2) : utilisez les suggestions proposées.</p>
+                                        </div>
+                                        {{-- Champs propres à PawaPay (doc "Initiate remittance" — API Remittance,
+                                             consultée le 2026-08-20) : opérateur mobile money + motif/origine des
+                                             fonds, imposés par des enums stricts côté PawaPay (voir
+                                             OutboundController::PAWAPAY_PURPOSE_OF_FUNDS / PAWAPAY_SOURCE_OF_FUNDS).
+                                             Masqués par défaut, affichés uniquement quand "PawaPay" est sélectionné
+                                             ci-dessus (voir script en bas de page). Contrairement à DigitWace,
+                                             PawaPay n'est intégré que pour le Congo-Brazzaville mobile money — pas
+                                             de virement bancaire ni de retrait en espèces (voir option désactivée
+                                             ci-dessus). --}}
+                                        <div id="pawapayFields" style="{{ (($partnerChoice ?? 'peex') === 'pawapay') ? '' : 'display: none' }}">
+                                            <div class="row">
+                                                <div class="col-4">
+                                                    <div class="form-group row">
+                                                        <label for="pawapay_operator" class="col-4 col-form-label">Opérateur mobile money</label>
+                                                        <div class="col-8">
+                                                            <select class="form-control" name="pawapay_operator" id="pawapay_operator">
+                                                                <option value="AIRTEL" {{ (($pawapayExtra['pawapay_operator'] ?? '') === 'AIRTEL') ? 'selected' : '' }}>Airtel Money</option>
+                                                                <option value="MTN" {{ (($pawapayExtra['pawapay_operator'] ?? '') === 'MTN') ? 'selected' : '' }}>MTN Mobile Money</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-4">
+                                                    <div class="form-group row">
+                                                        <label for="pawapay_purpose_of_funds" class="col-4 col-form-label">Motif du transfert</label>
+                                                        <div class="col-8">
+                                                            <select class="form-control" name="pawapay_purpose_of_funds" id="pawapay_purpose_of_funds">
+                                                                @php
+                                                                    $pawapayPurposes = [
+                                                                        'FAMILY_SUPPORT' => 'Soutien familial', 'MEDICAL_EXPENSES' => 'Frais médicaux',
+                                                                        'TUITION_FEES' => 'Frais de scolarité', 'EDUCATION_SUPPORT' => 'Soutien éducatif',
+                                                                        'GIFT_AND_OTHER_DONATIONS' => 'Don / cadeau', 'HOME_IMPROVEMENT' => 'Amélioration du logement',
+                                                                        'DEBT_SETTLEMENT' => 'Remboursement de dette', 'REAL_ESTATE' => 'Immobilier',
+                                                                        'TAXES' => 'Impôts / taxes', 'SALARY' => 'Salaire', 'SAVINGS' => 'Épargne',
+                                                                        'PERSONAL_TRANSFER' => 'Transfert personnel', 'OTHER' => 'Autre',
+                                                                    ];
+                                                                @endphp
+                                                                @foreach($pawapayPurposes as $value => $label)
+                                                                    <option value="{{ $value }}" {{ (($pawapayExtra['pawapay_purpose_of_funds'] ?? 'PERSONAL_TRANSFER') === $value) ? 'selected' : '' }}>{{ $label }}</option>
+                                                                @endforeach
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-4">
+                                                    <div class="form-group row">
+                                                        <label for="pawapay_source_of_funds" class="col-4 col-form-label">Origine des fonds</label>
+                                                        <div class="col-8">
+                                                            <select class="form-control" name="pawapay_source_of_funds" id="pawapay_source_of_funds">
+                                                                @php
+                                                                    $pawapaySources = [
+                                                                        'SALARY' => 'Salaire', 'SAVINGS' => 'Épargne', 'LOTTERY' => 'Loterie / gain',
+                                                                        'LOAN' => 'Prêt', 'BUSINESS_INCOME' => 'Revenu d\'entreprise', 'GIFT' => 'Don / cadeau',
+                                                                        'OTHER' => 'Autre',
+                                                                    ];
+                                                                @endphp
+                                                                @foreach($pawapaySources as $value => $label)
+                                                                    <option value="{{ $value }}" {{ (($pawapayExtra['pawapay_source_of_funds'] ?? 'SALARY') === $value) ? 'selected' : '' }}>{{ $label }}</option>
+                                                                @endforeach
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </fieldset>
                                     <h5>Informations Bénéficiaire</h5>
@@ -342,9 +416,11 @@
     <script type="text/javascript">
         function tholadpayToggleDigitwaceFields() {
             var partnerSelect = document.getElementById('partner');
-            var block = document.getElementById('digitwaceFields');
-            if (!partnerSelect || !block) { return; }
-            block.style.display = (partnerSelect.value === 'digitwace') ? '' : 'none';
+            var dwBlock = document.getElementById('digitwaceFields');
+            var ppBlock = document.getElementById('pawapayFields');
+            if (!partnerSelect) { return; }
+            if (dwBlock) { dwBlock.style.display = (partnerSelect.value === 'digitwace') ? '' : 'none'; }
+            if (ppBlock) { ppBlock.style.display = (partnerSelect.value === 'pawapay') ? '' : 'none'; }
         }
         document.addEventListener('DOMContentLoaded', tholadpayToggleDigitwaceFields);
     </script>

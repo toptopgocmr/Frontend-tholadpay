@@ -735,6 +735,10 @@ class TransactionController extends Controller
         // à un chargement précédent de cette même page) puis sur 'peex' par défaut
         // pour ne rien changer au comportement existant si jamais rien n'est fourni.
         $partnerChoice = $request->get('partner') ?: $request->session()->get('partner_' . $id, 'peex');
+        // AJOUT (2026-08-20) : voir dw_extra_{id} pour DigitWace ci-dessous —
+        // même principe pour PawaPay (opérateur + motif/origine des fonds),
+        // pré-rempli dans la vue si l'agent revient sur cette étape.
+        $pawapayExtra = $request->session()->get('pawapay_extra_' . $id, []);
         try {
             $client = new Client();
             $transaction = $client->get(config('keys.url_api') . 'transactions/' . $id . '?_includes=sender,agent,sender.user,user,user.addresses,user.addresses.town,outbound.bank,outbound.mobile,outbound.cash&order=desc', [
@@ -814,6 +818,17 @@ class TransactionController extends Controller
                                 'receiver_id_number' => trim((string) $request->get('receiver_id_number')),
                                 'receiver_id_type' => $request->get('receiver_id_type') ?: 'PP',
                                 'relation' => trim((string) $request->get('relation')),
+                            ]);
+                        }
+                        // AJOUT (2026-08-20) : mémorise le choix d'opérateur + motif/origine
+                        // des fonds PawaPay pour l'étape 3 (sendtransaction), qui recharge la
+                        // transaction sans repasser par ce formulaire — même principe que
+                        // dw_extra_{id} ci-dessus pour DigitWace.
+                        if ($partnerChoice === 'pawapay') {
+                            $request->session()->put('pawapay_extra_' . $id, [
+                                'pawapay_operator' => trim((string) $request->get('pawapay_operator')) ?: 'AIRTEL',
+                                'pawapay_purpose_of_funds' => trim((string) $request->get('pawapay_purpose_of_funds')) ?: 'PERSONAL_TRANSFER',
+                                'pawapay_source_of_funds' => trim((string) $request->get('pawapay_source_of_funds')) ?: 'SALARY',
                             ]);
                         }
                         try {
@@ -970,7 +985,7 @@ class TransactionController extends Controller
             return redirect()->route('transaction_list')
                 ->with('error', 'Erreur lors de la validation : ' . $e->getMessage());
         }
-        return view('transactions.update', compact('currency', 'client_id', 'type', 'token', 'role', 'user', 'menu', 'transaction', 'clientName', 'partner', 'partnerChoice'));
+        return view('transactions.update', compact('currency', 'client_id', 'type', 'token', 'role', 'user', 'menu', 'transaction', 'clientName', 'partner', 'partnerChoice', 'pawapayExtra'));
     }
 
 
@@ -1191,6 +1206,9 @@ class TransactionController extends Controller
         // Choisi à l'étape 1, voir commentaire identique dans getquotation().
         $partnerChoice = $request->session()->get('partner_' . $id, 'peex');
         $dwExtra = $request->session()->get('dw_extra_' . $id, []);
+        // Voir commentaire identique dans update() — opérateur + motif/origine des
+        // fonds PawaPay, mémorisés à l'étape 1.
+        $pawapayExtra = $request->session()->get('pawapay_extra_' . $id, []);
         try {
             $client = new Client();
             $transaction = $client->get(config('keys.url_api') . 'transactions/' . $id . '?_includes=sender,agent,sender.user,user,user.addresses,user.addresses.town,user.agent,user.agent.agent,outbound.bank,outbound.mobile,outbound.cash&order=desc', [
@@ -1346,6 +1364,14 @@ class TransactionController extends Controller
                                     $infoTrans['origin_fund'] = $dwExtra['origin_fund'] ?? '';
                                     $infoTrans['reason'] = $dwExtra['reason'] ?? '';
                                 }
+                                // AJOUT (2026-08-20) : champs exigés par PawaPay (voir
+                                // OutboundController::sendPawapayRemittance/requirePawapayReferenceFields),
+                                // mémorisés à l'étape 1 (update()).
+                                if ($partnerChoice === 'pawapay') {
+                                    $infoTrans['pawapay_operator'] = $pawapayExtra['pawapay_operator'] ?? 'AIRTEL';
+                                    $infoTrans['pawapay_purpose_of_funds'] = $pawapayExtra['pawapay_purpose_of_funds'] ?? 'PERSONAL_TRANSFER';
+                                    $infoTrans['pawapay_source_of_funds'] = $pawapayExtra['pawapay_source_of_funds'] ?? 'SALARY';
+                                }
 
                                 $p = $client->post(config('keys.url_api') . 'send_transaction', [
                                     'verify' => false,
@@ -1467,6 +1493,7 @@ class TransactionController extends Controller
                                 $request->session()->forget('quote_' . $transaction['id']);
                                 $request->session()->forget('partner_' . $transaction['id']);
                                 $request->session()->forget('dw_extra_' . $transaction['id']);
+                                $request->session()->forget('pawapay_extra_' . $transaction['id']);
 
                                 $phone_sender =  $transaction['user']['phone_number'];
                                 $phone_receive = $transaction['recipient_phone'];
