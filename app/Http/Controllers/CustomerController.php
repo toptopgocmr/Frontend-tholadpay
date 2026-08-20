@@ -43,6 +43,17 @@ class CustomerController extends Controller
         $custs = [];
         // dump($customers);
         foreach ($customers as $cu) {
+            // FIX (2026-08-20) : au moins un sender renvoyé par l'API n'a pas de
+            // 'user' associé (user_id orphelin — utilisateur supprimé/introuvable
+            // côté API malgré '_includes=user'), ce qui faisait planter la page
+            // ("Tentative d'accès à un élément de tableau sur une valeur de type
+            // null" sur $cu['user']['status']) et rendait /admin/customers
+            // totalement inaccessible pour TOUT le monde à cause d'UN SEUL
+            // enregistrement corrompu. On ignore silencieusement ces senders
+            // orphelins plutôt que de faire planter la liste entière.
+            if (empty($cu['user'])) {
+                continue;
+            }
             if ($cu['user']['status'] !== 'Rejected') {
                 if (!isset($cu['sender'])) { // si il ne trouve pas les senders
                     $value = [
