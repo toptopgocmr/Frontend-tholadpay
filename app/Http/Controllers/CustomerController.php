@@ -43,6 +43,15 @@ class CustomerController extends Controller
         $custs = [];
         // dump($customers);
         foreach ($customers as $cu) {
+            // FIX (2026-08-20) : certains enregistrements "sender" en base n'ont
+            // plus de "user" lié (compte utilisateur supprimé/orphelin cote API).
+            // $cu['user'] vaut alors null, et $cu['user']['status'] plante toute
+            // la page (Trying to access array offset on value of type null) —
+            // un seul enregistrement corrompu rendait TOUTE la liste clients
+            // inaccessible en admin. On ignore simplement ces lignes orphelines.
+            if (empty($cu['user'])) {
+                continue;
+            }
             if ($cu['user']['status'] !== 'Rejected') {
                 if (!isset($cu['sender'])) { // si il ne trouve pas les senders
                     $value = [
