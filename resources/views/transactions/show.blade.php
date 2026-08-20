@@ -318,16 +318,25 @@
                                         <tbody>
                                         </tbody>
                                     </table>
-                                    Pièces justificatives <br> 
+                                    Pièces justificatives <br>
                                     @if( $transaction['sender']['cni_picture'] != null )
-                                        <img src="{{config('keys.url_img').$transaction['sender']['cni_picture']}}" alt="" title="recto"
-                                             style="max-width: 300px; max-height: 200px; border-radius:2rem!important" />
+                                        <button type="button" class="doc-thumb-btn" style="width:150px;height:100px;margin-right:8px"
+                                                onclick="docViewerOpen('{{config('keys.url_img').$transaction['sender']['cni_picture']}}', 'Pièce d\'identité - Recto')">
+                                            <img src="{{config('keys.url_img').$transaction['sender']['cni_picture']}}" alt="Recto" title="recto"
+                                                 style="width:100%;height:100%;object-fit:cover" />
+                                            <span class="doc-thumb-zoom-icon"><i class="mdi mdi-magnify-plus-outline"></i></span>
+                                        </button>
                                     @endif
                                     @if( $transaction['sender']['justif_picture'] != null )
-                                        <img src="{!! config('keys.url_img').$transaction['sender']['justif_picture'] !!}" alt="" title="Verso"
-                                             style="max-width: 300px; max-height: 200px; border-radius:2rem!important" />
+                                        <button type="button" class="doc-thumb-btn" style="width:150px;height:100px"
+                                                onclick="docViewerOpen('{{config('keys.url_img').$transaction['sender']['justif_picture']}}', 'Pièce d\'identité - Verso')">
+                                            <img src="{{config('keys.url_img').$transaction['sender']['justif_picture']}}" alt="Verso" title="Verso"
+                                                 style="width:100%;height:100%;object-fit:cover" />
+                                            <span class="doc-thumb-zoom-icon"><i class="mdi mdi-magnify-plus-outline"></i></span>
+                                        </button>
                                     @endif
-                                    
+                                    @include('partials.image_zoom_viewer')
+
                                 </div>
                             </div>
 

@@ -333,13 +333,17 @@
                                         <div class="form-group row">
                                             @if($type === 'add' || ($type === 'edit' && @$userEdit['sender']['cni_picture'] === null))
                                                 <img id="recto" src="{{URL::asset('img/empty_img.png')}}" width="150px" height="150px"
-                                                    style="border-radius: 50%"
+                                                    style="border-radius: 8px; object-fit: cover"
                                                     alt="Piece Recto"/>
                                             @endif
                                             @if($type === 'edit' && @$userEdit['sender']['cni_picture'] !== null)
-                                                <img id="recto" src="{{config('keys.url_img').$userEdit['sender']['cni_picture']}}" width="150px" height="150px"
-                                                    style="border-radius: 50%"
-                                                    alt="Piece Recto"/>
+                                                <button type="button" class="doc-thumb-btn" style="width:150px;height:150px"
+                                                        onclick="docViewerOpen('{{config('keys.url_img').$userEdit['sender']['cni_picture']}}', 'Pièce d\'identité - Recto')">
+                                                    <img id="recto" src="{{config('keys.url_img').$userEdit['sender']['cni_picture']}}" width="150px" height="150px"
+                                                        style="width:100%;height:100%;object-fit:cover"
+                                                        alt="Piece Recto"/>
+                                                    <span class="doc-thumb-zoom-icon"><i class="mdi mdi-magnify-plus-outline"></i></span>
+                                                </button>
                                             @endif
                                         </div>
                                     </div>
@@ -358,18 +362,23 @@
                                         <div class="form-group row">
                                             @if($type === 'add' || ($type === 'edit' && @$userEdit['sender']['justif_picture'] === null))
                                                 <img id="verso" src="{{URL::asset('img/empty_img.png')}}" width="150px" height="150px"
-                                                    style="border-radius: 50%"
+                                                    style="border-radius: 8px; object-fit: cover"
                                                     alt="Piece Verso"/>
                                             @endif
                                             @if($type === 'edit' && @$userEdit['sender']['justif_picture'] !== null)
-                                                <img id="verso" src="{{config('keys.url_img').$userEdit['sender']['justif_picture']}}" width="150px" height="150px"
-                                                    style="border-radius: 50%"
-                                                    alt="Piece Verso"/>
+                                                <button type="button" class="doc-thumb-btn" style="width:150px;height:150px"
+                                                        onclick="docViewerOpen('{{config('keys.url_img').$userEdit['sender']['justif_picture']}}', 'Pièce d\'identité - Verso')">
+                                                    <img id="verso" src="{{config('keys.url_img').$userEdit['sender']['justif_picture']}}" width="150px" height="150px"
+                                                        style="width:100%;height:100%;object-fit:cover"
+                                                        alt="Piece Verso"/>
+                                                    <span class="doc-thumb-zoom-icon"><i class="mdi mdi-magnify-plus-outline"></i></span>
+                                                </button>
                                             @endif
                                         </div>
                                     </div>
-                                </div>        
+                                </div>
                             </fieldset>
+                            @include('partials.image_zoom_viewer')
                             <fieldset><br>
                                 <i class="red">(*)</i> Ce sont les champs obligatoires.
                                 <div class="row">
