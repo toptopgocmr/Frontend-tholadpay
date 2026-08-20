@@ -162,6 +162,29 @@
                                                     </div>
                                                 </div>
                                             </div>
+                                            {{-- AJOUT (2026-08-20, incident transaction #90) : DigitWace exige aussi la
+                                                 date de naissance et la date d'expiration de la pièce du bénéficiaire
+                                                 sur /beneficiary/create (voir OutboundController::createDigitwaceBeneficiary) —
+                                                 champs absents jusqu'ici du formulaire, l'envoi échouait donc
+                                                 systématiquement pour tout partenaire DigitWace. --}}
+                                            <div class="row">
+                                                <div class="col-4">
+                                                    <div class="form-group row">
+                                                        <label for="receiver_dob" class="col-4 col-form-label">Date de naissance bénéficiaire</label>
+                                                        <div class="col-8">
+                                                            <input type="date" class="form-control" name="receiver_dob" id="receiver_dob" value="{{ $transaction['receiver_dob'] ?? '' }}">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-4">
+                                                    <div class="form-group row">
+                                                        <label for="receiver_expire_date" class="col-4 col-form-label">Expiration pièce bénéficiaire</label>
+                                                        <div class="col-8">
+                                                            <input type="date" class="form-control" name="receiver_expire_date" id="receiver_expire_date" value="{{ $transaction['receiver_expire_date'] ?? '' }}">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <p class="text-muted">DigitWace impose des valeurs précises (relation / origine des fonds / raison — voir étape 2) : utilisez les suggestions proposées.</p>
                                         </div>
                                         {{-- Champs propres à PawaPay (doc "Initiate remittance" — API Remittance,

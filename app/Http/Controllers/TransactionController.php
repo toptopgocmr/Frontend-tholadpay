@@ -818,6 +818,12 @@ class TransactionController extends Controller
                                 'receiver_id_number' => trim((string) $request->get('receiver_id_number')),
                                 'receiver_id_type' => $request->get('receiver_id_type') ?: 'PP',
                                 'relation' => trim((string) $request->get('relation')),
+                                // AJOUT (2026-08-20, incident transaction #90) : DigitWace exige
+                                // aussi dob/expire_date sur tout bénéficiaire (voir
+                                // OutboundController::createDigitwaceBeneficiary) — mémorisés ici
+                                // comme les autres champs DigitWace pour survivre aux étapes 2/3.
+                                'receiver_dob' => trim((string) $request->get('receiver_dob')),
+                                'receiver_expire_date' => trim((string) $request->get('receiver_expire_date')),
                             ]);
                         }
                         // AJOUT (2026-08-20) : mémorise le choix d'opérateur + motif/origine
@@ -1315,6 +1321,11 @@ class TransactionController extends Controller
                                     $infoTrans['relation'] = $dwExtra['relation'] ?? '';
                                     $infoTrans['origin_fund'] = $dwExtra['origin_fund'] ?? '';
                                     $infoTrans['reason'] = $dwExtra['reason'] ?? '';
+                                    // AJOUT (2026-08-20, incident transaction #90) : voir
+                                    // OutboundController::createDigitwaceBeneficiary — DigitWace exige
+                                    // dob/expire_date sur tout bénéficiaire, pas seulement Business.
+                                    $infoTrans['receiver_dob'] = $dwExtra['receiver_dob'] ?? '';
+                                    $infoTrans['receiver_expire_date'] = $dwExtra['receiver_expire_date'] ?? '';
                                 }
                                 // dump($infoTrans);
 
@@ -1363,6 +1374,11 @@ class TransactionController extends Controller
                                     $infoTrans['relation'] = $dwExtra['relation'] ?? '';
                                     $infoTrans['origin_fund'] = $dwExtra['origin_fund'] ?? '';
                                     $infoTrans['reason'] = $dwExtra['reason'] ?? '';
+                                    // AJOUT (2026-08-20, incident transaction #90) : voir
+                                    // OutboundController::createDigitwaceBeneficiary — DigitWace exige
+                                    // dob/expire_date sur tout bénéficiaire, pas seulement Business.
+                                    $infoTrans['receiver_dob'] = $dwExtra['receiver_dob'] ?? '';
+                                    $infoTrans['receiver_expire_date'] = $dwExtra['receiver_expire_date'] ?? '';
                                 }
                                 // AJOUT (2026-08-20) : champs exigés par PawaPay (voir
                                 // OutboundController::sendPawapayRemittance/requirePawapayReferenceFields),
@@ -1414,6 +1430,11 @@ class TransactionController extends Controller
                                     'relation' => $dwExtra['relation'] ?? '',
                                     'origin_fund' => $dwExtra['origin_fund'] ?? '',
                                     'reason' => $dwExtra['reason'] ?? '',
+                                    // AJOUT (2026-08-20, incident transaction #90) : voir
+                                    // OutboundController::createDigitwaceBeneficiary — DigitWace exige
+                                    // dob/expire_date sur tout bénéficiaire, pas seulement Business.
+                                    'receiver_dob' => $dwExtra['receiver_dob'] ?? '',
+                                    'receiver_expire_date' => $dwExtra['receiver_expire_date'] ?? '',
                                 ];
                                 $p = $client->post(config('keys.url_api') . 'send_cash_transaction', [
                                     'verify' => false,
