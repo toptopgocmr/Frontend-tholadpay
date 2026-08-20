@@ -43,17 +43,6 @@ class CustomerController extends Controller
         $custs = [];
         // dump($customers);
         foreach ($customers as $cu) {
-            // FIX (2026-08-20) : au moins un sender renvoyé par l'API n'a pas de
-            // 'user' associé (user_id orphelin — utilisateur supprimé/introuvable
-            // côté API malgré '_includes=user'), ce qui faisait planter la page
-            // ("Tentative d'accès à un élément de tableau sur une valeur de type
-            // null" sur $cu['user']['status']) et rendait /admin/customers
-            // totalement inaccessible pour TOUT le monde à cause d'UN SEUL
-            // enregistrement corrompu. On ignore silencieusement ces senders
-            // orphelins plutôt que de faire planter la liste entière.
-            if (empty($cu['user'])) {
-                continue;
-            }
             if ($cu['user']['status'] !== 'Rejected') {
                 if (!isset($cu['sender'])) { // si il ne trouve pas les senders
                     $value = [
@@ -691,7 +680,19 @@ class CustomerController extends Controller
                 // dump($id);
                 $token = $request->session()->get('token');
                 $user = $request->session()->get('user');
-                $client = new Client();
+                // FIX (2026-08-20) : ce Client Guzzle (et donc les 4 appels HTTP
+                // séquentiels de validateCustomer()+ensureCustomerRole() ci-dessous)
+                // n'avait aucun timeout — si le backend met du temps à répondre
+                // (charge, requête lente), Guzzle attend indéfiniment jusqu'à ce que
+                // PHP tue le script au bout des 30s de max_execution_time. Cette
+                // erreur "Maximum execution time exceeded" est un fatal du moteur
+                // Zend, PAS une \Exception : le catch ci-dessous ne l'attrape jamais,
+                // d'où la page d'erreur Symfony brute vue par l'admin au lieu du
+                // message 'Erreur lors de la validation...'. Un timeout explicite,
+                // largement sous 30s, garantit qu'un appel lent échoue proprement
+                // via une RequestException catchable plutôt que de tuer tout le
+                // script.
+                $client = new Client(['timeout' => 10, 'connect_timeout' => 5]);
                 $us = [
                     'is_active' => 1,
                     'admin_id' => $user['id'],
