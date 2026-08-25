@@ -99,23 +99,24 @@
                                                     <label for="origin" class="col-4 col-form-label">Origine des
                                                         fonds <i class="red">*</i></label>
                                                     <div class="col-8">
-                                                        <input type="text"
-                                                               value="{{$transaction['transaction_reference']}}"
-                                                               class="form-control" required name="origin" id="origin"
-                                                               list="dwOriginFunds">
-                                                        {{-- Si DigitWace est le partenaire choisi (étape 1), ce champ
-                                                             est réutilisé comme "originFund" — DigitWace impose une
-                                                             valeur parmi une liste fermée (doc §XVII) ; suggestions
-                                                             ci-dessous à titre indicatif. --}}
-                                                        {{-- FIX (2026-08-25, meme incident que "relation" ci-dessus) : cette
-                                                             liste contenait "Business Profit" et "Settlement", deux valeurs
-                                                             absentes de la liste WACEPAY reelle (/api/get_digitwace_origin_funds),
-                                                             ce qui aurait provoque la meme erreur "does not exist or is disabled"
-                                                             si un agent les avait choisies. Liste complete (6 valeurs) recopiee
-                                                             depuis la reponse live de cet endpoint. --}}
-                                                        <datalist id="dwOriginFunds">
-                                                            <option value="Savings"><option value="Salary"><option value="Lottery"><option value="Loan"><option value="Business Income"><option value="Others">
-                                                        </datalist>
+                                                        {{-- FIX (2026-08-25, incident transaction #151, erreur WACEPAY "The
+                                                             reason does not exist or is disabled") : un champ texte libre +
+                                                             datalist n'empeche PAS de taper/valider une valeur hors liste --
+                                                             la datalist n'est qu'une suggestion, jamais une contrainte HTML.
+                                                             Ce champ etait en outre pre-rempli avec transaction_reference
+                                                             (valeur Peex, jamais garantie valide cote DigitWace), ce que
+                                                             l'agent validait tel quel sans le remarquer. Remplace par un
+                                                             <select> natif : seules les 6 valeurs reelles de
+                                                             /api/get_digitwace_origin_funds sont selectionnables. --}}
+                                                        <select class="form-control" required name="origin" id="origin">
+                                                            <option value="">— Sélectionner —</option>
+                                                            <option value="Savings" {{ ($transaction['transaction_reference']) === "Savings" ? 'selected' : '' }}>Savings</option>
+                                                            <option value="Salary" {{ ($transaction['transaction_reference']) === "Salary" ? 'selected' : '' }}>Salary</option>
+                                                            <option value="Lottery" {{ ($transaction['transaction_reference']) === "Lottery" ? 'selected' : '' }}>Lottery</option>
+                                                            <option value="Loan" {{ ($transaction['transaction_reference']) === "Loan" ? 'selected' : '' }}>Loan</option>
+                                                            <option value="Business Income" {{ ($transaction['transaction_reference']) === "Business Income" ? 'selected' : '' }}>Business Income</option>
+                                                            <option value="Others" {{ ($transaction['transaction_reference']) === "Others" ? 'selected' : '' }}>Others</option>
+                                                        </select>
                                                     </div>
                                                 </div>
                                             </div>
@@ -124,24 +125,29 @@
                                                     <label for="reason" class="col-4 col-form-label">Raison du
                                                         transfert <i class="red">*</i></label>
                                                     <div class="col-8">
-                                                        <input type="text"
-                                                               value="{{$transaction['transaction_reason']}}"
-                                                               class="form-control" required name="reason" id="reason"
-                                                               list="dwReasons">
-                                                        {{-- Idem pour "reason" (doc §XVIII) si DigitWace est choisi. --}}
-                                                        {{-- FIX (2026-08-25, meme incident que "relation" ci-dessus) : liste
-                                                             quasi entierement inventee -- seules "Family Maintainance" et
-                                                             "Business Travel" existaient reellement cote WACEPAY. Les 6 autres
-                                                             valeurs ("Charitable Donation", "Employee Compensation", etc.)
-                                                             auraient provoque la meme erreur "does not exist or is disabled".
-                                                             Liste complete (13 valeurs) recopiee depuis /api/get_digitwace_reasons. --}}
-                                                        <datalist id="dwReasons">
-                                                            <option value="Gift"><option value="Salary"><option value="Debt Settlement">
-                                                            <option value="Family Maintainance"><option value="Business Travel"><option value="Business Profits to Parents">
-                                                            <option value="Medical Expenses"><option value="Education Support"><option value="Real Estate">
-                                                            <option value="Taxes"><option value="Tuition Fees"><option value="Home Improvement">
-                                                            <option value="Savings">
-                                                        </datalist>
+                                                        {{-- FIX (2026-08-25, incident transaction #151, erreur WACEPAY "The
+                                                             reason does not exist or is disabled") : meme cause que "origin"
+                                                             ci-dessus -- champ texte libre pre-rempli avec transaction_reason
+                                                             (valeur Peex libre, ex. "Aide familiale" en francais) que la
+                                                             datalist ne bloquait pas. Remplace par un <select> natif : seules
+                                                             les 13 valeurs reelles de /api/get_digitwace_reasons sont
+                                                             selectionnables. --}}
+                                                        <select class="form-control" required name="reason" id="reason">
+                                                            <option value="">— Sélectionner —</option>
+                                                            <option value="Gift" {{ ($transaction['transaction_reason']) === "Gift" ? 'selected' : '' }}>Gift</option>
+                                                            <option value="Salary" {{ ($transaction['transaction_reason']) === "Salary" ? 'selected' : '' }}>Salary</option>
+                                                            <option value="Debt Settlement" {{ ($transaction['transaction_reason']) === "Debt Settlement" ? 'selected' : '' }}>Debt Settlement</option>
+                                                            <option value="Family Maintainance" {{ ($transaction['transaction_reason']) === "Family Maintainance" ? 'selected' : '' }}>Family Maintainance</option>
+                                                            <option value="Business Travel" {{ ($transaction['transaction_reason']) === "Business Travel" ? 'selected' : '' }}>Business Travel</option>
+                                                            <option value="Business Profits to Parents" {{ ($transaction['transaction_reason']) === "Business Profits to Parents" ? 'selected' : '' }}>Business Profits to Parents</option>
+                                                            <option value="Medical Expenses" {{ ($transaction['transaction_reason']) === "Medical Expenses" ? 'selected' : '' }}>Medical Expenses</option>
+                                                            <option value="Education Support" {{ ($transaction['transaction_reason']) === "Education Support" ? 'selected' : '' }}>Education Support</option>
+                                                            <option value="Real Estate" {{ ($transaction['transaction_reason']) === "Real Estate" ? 'selected' : '' }}>Real Estate</option>
+                                                            <option value="Taxes" {{ ($transaction['transaction_reason']) === "Taxes" ? 'selected' : '' }}>Taxes</option>
+                                                            <option value="Tuition Fees" {{ ($transaction['transaction_reason']) === "Tuition Fees" ? 'selected' : '' }}>Tuition Fees</option>
+                                                            <option value="Home Improvement" {{ ($transaction['transaction_reason']) === "Home Improvement" ? 'selected' : '' }}>Home Improvement</option>
+                                                            <option value="Savings" {{ ($transaction['transaction_reason']) === "Savings" ? 'selected' : '' }}>Savings</option>
+                                                        </select>
                                                     </div>
                                                 </div>
                                             </div>

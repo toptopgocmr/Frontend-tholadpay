@@ -151,27 +151,64 @@
                                                     <div class="form-group row">
                                                         <label for="relation" class="col-4 col-form-label">Relation avec le bénéficiaire</label>
                                                         <div class="col-8">
-                                                            <input type="text" class="form-control" name="relation" id="relation" list="dwRelations" placeholder="Ex: Brother, Sister, Self..." value="{{ $transaction['receiver_relation'] ?? '' }}">
-                                                            {{-- FIX (2026-08-25, incident transactions #133/#135, erreur WACEPAY
-                                                                 "The relation with beneficiary does not exist or is disabled") : la
-                                                                 liste ci-dessous ne comptait que 14 valeurs (dont "Other", invalide
-                                                                 cote WACEPAY) alors que /api/get_digitwace_relations en expose 47.
-                                                                 Liste complete recopiee depuis la reponse live de cet endpoint
-                                                                 (source de verite WACEPAY/DigitWace, doc "List C"). --}}
-                                                            <datalist id="dwRelations">
-                                                                <option value="Brother"><option value="Mother"><option value="Sister"><option value="Self">
-                                                                <option value="Father"><option value="Spouse"><option value="Son"><option value="Daughter">
-                                                                <option value="Friend"><option value="Employer"><option value="Guardian"><option value="Husband">
-                                                                <option value="Wife"><option value="In-Laws"><option value="Cousin"><option value="Partners">
-                                                                <option value="Aunt"><option value="Uncle"><option value="Bank Notes"><option value="Own Account">
-                                                                <option value="Sponsor"><option value="Director"><option value="Authorized Signatory"><option value="Corporate Representative">
-                                                                <option value="Owner"><option value="Brother In Law"><option value="Business"><option value="Corporate">
-                                                                <option value="Daughter In Law"><option value="Family"><option value="Father In Law"><option value="Friend's Father">
-                                                                <option value="Friend's Mother"><option value="Grand Daughter"><option value="Grand Father"><option value="Grand Mother">
-                                                                <option value="Grand Son"><option value="Mother In Law"><option value="Neighbour"><option value="Nephew">
-                                                                <option value="Niece"><option value="Parent"><option value="Relative"><option value="Sister In Law">
-                                                                <option value="Son In Law"><option value="Step Child"><option value="Colleague">
-                                                            </datalist>
+                                                            {{-- FIX (2026-08-25, v2, incident transactions #133/#135/#151) : un
+                                                                 champ texte libre + datalist n'empeche pas de valider une valeur
+                                                                 hors liste (la datalist n'est qu'une suggestion HTML, jamais une
+                                                                 contrainte) -- exactement le meme mecanisme qui a ensuite touche
+                                                                 "reason" sur la transaction #151 malgre la datalist deja corrigee
+                                                                 le jour meme. Remplace par un <select> natif : seules les 47
+                                                                 valeurs reelles de /api/get_digitwace_relations sont
+                                                                 selectionnables. --}}
+                                                            <select class="form-control" name="relation" id="relation">
+                                                                <option value="">— Sélectionner —</option>
+                                                            <option value="Brother" {{ ($transaction['receiver_relation'] ?? '') === "Brother" ? 'selected' : '' }}>Brother</option>
+                                                            <option value="Mother" {{ ($transaction['receiver_relation'] ?? '') === "Mother" ? 'selected' : '' }}>Mother</option>
+                                                            <option value="Sister" {{ ($transaction['receiver_relation'] ?? '') === "Sister" ? 'selected' : '' }}>Sister</option>
+                                                            <option value="Self" {{ ($transaction['receiver_relation'] ?? '') === "Self" ? 'selected' : '' }}>Self</option>
+                                                            <option value="Father" {{ ($transaction['receiver_relation'] ?? '') === "Father" ? 'selected' : '' }}>Father</option>
+                                                            <option value="Spouse" {{ ($transaction['receiver_relation'] ?? '') === "Spouse" ? 'selected' : '' }}>Spouse</option>
+                                                            <option value="Son" {{ ($transaction['receiver_relation'] ?? '') === "Son" ? 'selected' : '' }}>Son</option>
+                                                            <option value="Daughter" {{ ($transaction['receiver_relation'] ?? '') === "Daughter" ? 'selected' : '' }}>Daughter</option>
+                                                            <option value="Friend" {{ ($transaction['receiver_relation'] ?? '') === "Friend" ? 'selected' : '' }}>Friend</option>
+                                                            <option value="Employer" {{ ($transaction['receiver_relation'] ?? '') === "Employer" ? 'selected' : '' }}>Employer</option>
+                                                            <option value="Guardian" {{ ($transaction['receiver_relation'] ?? '') === "Guardian" ? 'selected' : '' }}>Guardian</option>
+                                                            <option value="Husband" {{ ($transaction['receiver_relation'] ?? '') === "Husband" ? 'selected' : '' }}>Husband</option>
+                                                            <option value="Wife" {{ ($transaction['receiver_relation'] ?? '') === "Wife" ? 'selected' : '' }}>Wife</option>
+                                                            <option value="In-Laws" {{ ($transaction['receiver_relation'] ?? '') === "In-Laws" ? 'selected' : '' }}>In-Laws</option>
+                                                            <option value="Cousin" {{ ($transaction['receiver_relation'] ?? '') === "Cousin" ? 'selected' : '' }}>Cousin</option>
+                                                            <option value="Partners" {{ ($transaction['receiver_relation'] ?? '') === "Partners" ? 'selected' : '' }}>Partners</option>
+                                                            <option value="Aunt" {{ ($transaction['receiver_relation'] ?? '') === "Aunt" ? 'selected' : '' }}>Aunt</option>
+                                                            <option value="Uncle" {{ ($transaction['receiver_relation'] ?? '') === "Uncle" ? 'selected' : '' }}>Uncle</option>
+                                                            <option value="Bank Notes" {{ ($transaction['receiver_relation'] ?? '') === "Bank Notes" ? 'selected' : '' }}>Bank Notes</option>
+                                                            <option value="Own Account" {{ ($transaction['receiver_relation'] ?? '') === "Own Account" ? 'selected' : '' }}>Own Account</option>
+                                                            <option value="Sponsor" {{ ($transaction['receiver_relation'] ?? '') === "Sponsor" ? 'selected' : '' }}>Sponsor</option>
+                                                            <option value="Director" {{ ($transaction['receiver_relation'] ?? '') === "Director" ? 'selected' : '' }}>Director</option>
+                                                            <option value="Authorized Signatory" {{ ($transaction['receiver_relation'] ?? '') === "Authorized Signatory" ? 'selected' : '' }}>Authorized Signatory</option>
+                                                            <option value="Corporate Representative" {{ ($transaction['receiver_relation'] ?? '') === "Corporate Representative" ? 'selected' : '' }}>Corporate Representative</option>
+                                                            <option value="Owner" {{ ($transaction['receiver_relation'] ?? '') === "Owner" ? 'selected' : '' }}>Owner</option>
+                                                            <option value="Brother In Law" {{ ($transaction['receiver_relation'] ?? '') === "Brother In Law" ? 'selected' : '' }}>Brother In Law</option>
+                                                            <option value="Business" {{ ($transaction['receiver_relation'] ?? '') === "Business" ? 'selected' : '' }}>Business</option>
+                                                            <option value="Corporate" {{ ($transaction['receiver_relation'] ?? '') === "Corporate" ? 'selected' : '' }}>Corporate</option>
+                                                            <option value="Daughter In Law" {{ ($transaction['receiver_relation'] ?? '') === "Daughter In Law" ? 'selected' : '' }}>Daughter In Law</option>
+                                                            <option value="Family" {{ ($transaction['receiver_relation'] ?? '') === "Family" ? 'selected' : '' }}>Family</option>
+                                                            <option value="Father In Law" {{ ($transaction['receiver_relation'] ?? '') === "Father In Law" ? 'selected' : '' }}>Father In Law</option>
+                                                            <option value="Friend's Father" {{ ($transaction['receiver_relation'] ?? '') === "Friend's Father" ? 'selected' : '' }}>Friend's Father</option>
+                                                            <option value="Friend's Mother" {{ ($transaction['receiver_relation'] ?? '') === "Friend's Mother" ? 'selected' : '' }}>Friend's Mother</option>
+                                                            <option value="Grand Daughter" {{ ($transaction['receiver_relation'] ?? '') === "Grand Daughter" ? 'selected' : '' }}>Grand Daughter</option>
+                                                            <option value="Grand Father" {{ ($transaction['receiver_relation'] ?? '') === "Grand Father" ? 'selected' : '' }}>Grand Father</option>
+                                                            <option value="Grand Mother" {{ ($transaction['receiver_relation'] ?? '') === "Grand Mother" ? 'selected' : '' }}>Grand Mother</option>
+                                                            <option value="Grand Son" {{ ($transaction['receiver_relation'] ?? '') === "Grand Son" ? 'selected' : '' }}>Grand Son</option>
+                                                            <option value="Mother In Law" {{ ($transaction['receiver_relation'] ?? '') === "Mother In Law" ? 'selected' : '' }}>Mother In Law</option>
+                                                            <option value="Neighbour" {{ ($transaction['receiver_relation'] ?? '') === "Neighbour" ? 'selected' : '' }}>Neighbour</option>
+                                                            <option value="Nephew" {{ ($transaction['receiver_relation'] ?? '') === "Nephew" ? 'selected' : '' }}>Nephew</option>
+                                                            <option value="Niece" {{ ($transaction['receiver_relation'] ?? '') === "Niece" ? 'selected' : '' }}>Niece</option>
+                                                            <option value="Parent" {{ ($transaction['receiver_relation'] ?? '') === "Parent" ? 'selected' : '' }}>Parent</option>
+                                                            <option value="Relative" {{ ($transaction['receiver_relation'] ?? '') === "Relative" ? 'selected' : '' }}>Relative</option>
+                                                            <option value="Sister In Law" {{ ($transaction['receiver_relation'] ?? '') === "Sister In Law" ? 'selected' : '' }}>Sister In Law</option>
+                                                            <option value="Son In Law" {{ ($transaction['receiver_relation'] ?? '') === "Son In Law" ? 'selected' : '' }}>Son In Law</option>
+                                                            <option value="Step Child" {{ ($transaction['receiver_relation'] ?? '') === "Step Child" ? 'selected' : '' }}>Step Child</option>
+                                                            <option value="Colleague" {{ ($transaction['receiver_relation'] ?? '') === "Colleague" ? 'selected' : '' }}>Colleague</option>
+                                                            </select>
                                                         </div>
                                                     </div>
                                                 </div>
