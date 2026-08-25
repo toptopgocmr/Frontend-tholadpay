@@ -1282,6 +1282,18 @@ class TransactionController extends Controller
                                 $infoTrans = [
                                     'amount' => $request->get('montant'),
                                     'currency' => $transaction['to_currency'],
+                                // FIX (2026-08-25, retour support WACEPAY) : 'currency' seul est
+                                // ambigu -- DigitWace (OutboundController::sendDigitwace{Bank,Wallet}
+                                // Transaction) lit `sendingCurrency` en priorite avec `currency` en
+                                // repli, mais on y mettait systematiquement to_currency (devise de
+                                // DESTINATION) au lieu de la devise d'envoi reelle (XAF, Congo).
+                                // Resultat : DigitWace recevait `fromCurrency: XOF` pour un envoi
+                                // CG->CI, rejete par /transaction/wallet/create avec "Payer code is
+                                // not match" (transactions #134/#135, 25/08). On envoie desormais
+                                // sendingCurrency/receivingCurrency explicitement, comme deja fait
+                                // pour la branche Cash plus bas.
+                                'sendingCurrency' => 'XAF',
+                                'receivingCurrency' => $transaction['to_currency'],
                                     'receiver_first_name' => trim($transaction['recipient_first_name']),
                                     'receiver_last_name' => trim($transaction['recipient_last_name']),
                                     'receiver_phone' => trim($transaction['recipient_phone']),
@@ -1354,6 +1366,18 @@ class TransactionController extends Controller
                                 $infoTrans = [
                                     'amount' => $request->get('montant'),
                                     'currency' => $transaction['to_currency'],
+                                // FIX (2026-08-25, retour support WACEPAY) : 'currency' seul est
+                                // ambigu -- DigitWace (OutboundController::sendDigitwace{Bank,Wallet}
+                                // Transaction) lit `sendingCurrency` en priorite avec `currency` en
+                                // repli, mais on y mettait systematiquement to_currency (devise de
+                                // DESTINATION) au lieu de la devise d'envoi reelle (XAF, Congo).
+                                // Resultat : DigitWace recevait `fromCurrency: XOF` pour un envoi
+                                // CG->CI, rejete par /transaction/wallet/create avec "Payer code is
+                                // not match" (transactions #134/#135, 25/08). On envoie desormais
+                                // sendingCurrency/receivingCurrency explicitement, comme deja fait
+                                // pour la branche Cash plus bas.
+                                'sendingCurrency' => 'XAF',
+                                'receivingCurrency' => $transaction['to_currency'],
                                     'receiver_first_name' => trim($transaction['recipient_first_name']),
                                     'receiver_last_name' => trim($transaction['recipient_last_name']),
                                     'receiver_phone' => $transaction['recipient_phone'],
