@@ -152,11 +152,25 @@
                                                         <label for="relation" class="col-4 col-form-label">Relation avec le bénéficiaire</label>
                                                         <div class="col-8">
                                                             <input type="text" class="form-control" name="relation" id="relation" list="dwRelations" placeholder="Ex: Brother, Sister, Self..." value="{{ $transaction['receiver_relation'] ?? '' }}">
+                                                            {{-- FIX (2026-08-25, incident transactions #133/#135, erreur WACEPAY
+                                                                 "The relation with beneficiary does not exist or is disabled") : la
+                                                                 liste ci-dessous ne comptait que 14 valeurs (dont "Other", invalide
+                                                                 cote WACEPAY) alors que /api/get_digitwace_relations en expose 47.
+                                                                 Liste complete recopiee depuis la reponse live de cet endpoint
+                                                                 (source de verite WACEPAY/DigitWace, doc "List C"). --}}
                                                             <datalist id="dwRelations">
-                                                                <option value="Self"><option value="Spouse"><option value="Wife"><option value="Husband">
-                                                                <option value="Brother"><option value="Sister"><option value="Mother"><option value="Father">
-                                                                <option value="Parent"><option value="Son"><option value="Daughter"><option value="Colleague">
-                                                                <option value="Friend"><option value="Other">
+                                                                <option value="Brother"><option value="Mother"><option value="Sister"><option value="Self">
+                                                                <option value="Father"><option value="Spouse"><option value="Son"><option value="Daughter">
+                                                                <option value="Friend"><option value="Employer"><option value="Guardian"><option value="Husband">
+                                                                <option value="Wife"><option value="In-Laws"><option value="Cousin"><option value="Partners">
+                                                                <option value="Aunt"><option value="Uncle"><option value="Bank Notes"><option value="Own Account">
+                                                                <option value="Sponsor"><option value="Director"><option value="Authorized Signatory"><option value="Corporate Representative">
+                                                                <option value="Owner"><option value="Brother In Law"><option value="Business"><option value="Corporate">
+                                                                <option value="Daughter In Law"><option value="Family"><option value="Father In Law"><option value="Friend's Father">
+                                                                <option value="Friend's Mother"><option value="Grand Daughter"><option value="Grand Father"><option value="Grand Mother">
+                                                                <option value="Grand Son"><option value="Mother In Law"><option value="Neighbour"><option value="Nephew">
+                                                                <option value="Niece"><option value="Parent"><option value="Relative"><option value="Sister In Law">
+                                                                <option value="Son In Law"><option value="Step Child"><option value="Colleague">
                                                             </datalist>
                                                         </div>
                                                     </div>

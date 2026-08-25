@@ -107,10 +107,14 @@
                                                              est réutilisé comme "originFund" — DigitWace impose une
                                                              valeur parmi une liste fermée (doc §XVII) ; suggestions
                                                              ci-dessous à titre indicatif. --}}
+                                                        {{-- FIX (2026-08-25, meme incident que "relation" ci-dessus) : cette
+                                                             liste contenait "Business Profit" et "Settlement", deux valeurs
+                                                             absentes de la liste WACEPAY reelle (/api/get_digitwace_origin_funds),
+                                                             ce qui aurait provoque la meme erreur "does not exist or is disabled"
+                                                             si un agent les avait choisies. Liste complete (6 valeurs) recopiee
+                                                             depuis la reponse live de cet endpoint. --}}
                                                         <datalist id="dwOriginFunds">
-                                                            <option value="Salary"><option value="Savings"><option value="Lottery">
-                                                            <option value="Loan"><option value="Business Income"><option value="Business Profit">
-                                                            <option value="Settlement"><option value="Others">
+                                                            <option value="Savings"><option value="Salary"><option value="Lottery"><option value="Loan"><option value="Business Income"><option value="Others">
                                                         </datalist>
                                                     </div>
                                                 </div>
@@ -125,11 +129,18 @@
                                                                class="form-control" required name="reason" id="reason"
                                                                list="dwReasons">
                                                         {{-- Idem pour "reason" (doc §XVIII) si DigitWace est choisi. --}}
+                                                        {{-- FIX (2026-08-25, meme incident que "relation" ci-dessus) : liste
+                                                             quasi entierement inventee -- seules "Family Maintainance" et
+                                                             "Business Travel" existaient reellement cote WACEPAY. Les 6 autres
+                                                             valeurs ("Charitable Donation", "Employee Compensation", etc.)
+                                                             auraient provoque la meme erreur "does not exist or is disabled".
+                                                             Liste complete (13 valeurs) recopiee depuis /api/get_digitwace_reasons. --}}
                                                         <datalist id="dwReasons">
-                                                            <option value="Family Maintainance"><option value="Business Travel">
-                                                            <option value="Charitable Donation"><option value="Employee Compensation">
-                                                            <option value="Conference or Training Fee"><option value="Rent Property Expenses">
-                                                            <option value="Travel Expenses"><option value="Other Business Services">
+                                                            <option value="Gift"><option value="Salary"><option value="Debt Settlement">
+                                                            <option value="Family Maintainance"><option value="Business Travel"><option value="Business Profits to Parents">
+                                                            <option value="Medical Expenses"><option value="Education Support"><option value="Real Estate">
+                                                            <option value="Taxes"><option value="Tuition Fees"><option value="Home Improvement">
+                                                            <option value="Savings">
                                                         </datalist>
                                                     </div>
                                                 </div>
