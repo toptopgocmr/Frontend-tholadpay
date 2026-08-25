@@ -159,7 +159,7 @@
                                                                  le jour meme. Remplace par un <select> natif : seules les 47
                                                                  valeurs reelles de /api/get_digitwace_relations sont
                                                                  selectionnables. --}}
-                                                            <select class="form-control" name="relation" id="relation">
+                                                            <select class="form-control" required name="relation" id="relation">
                                                                 <option value="">— Sélectionner —</option>
                                                             <option value="Brother" {{ ($transaction['receiver_relation'] ?? '') === "Brother" ? 'selected' : '' }}>Brother</option>
                                                             <option value="Mother" {{ ($transaction['receiver_relation'] ?? '') === "Mother" ? 'selected' : '' }}>Mother</option>

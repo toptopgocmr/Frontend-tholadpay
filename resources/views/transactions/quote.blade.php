@@ -152,6 +152,43 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        {{-- AJOUT (2026-08-25, incident transactions #150/#144, erreur WACEPAY
+                                             "Plusieurs services DigitWace de type 'wallet' sont disponibles pour
+                                             CI/XOF, precisez 'digitwace_service'") : la Cote d'Ivoire a 5
+                                             operateurs Mobile Money actifs (MOMO/MTN/MV/OM/WV, voir
+                                             OutboundController::resolveDigitwacePayerCode) -- quand la deduction
+                                             automatique depuis le numero du beneficiaire ne suffit pas a choisir
+                                             un operateur unique, l'envoi etait bloque sans aucun moyen pour
+                                             l'agent de preciser lui-meme. Champ affiche uniquement pour un envoi
+                                             Mobile via DigitWace ; laisser sur "Automatique" quand un seul
+                                             operateur est reellement disponible (cas le plus frequent hors CI). --}}
+                                        @if ($partnerChoice === 'digitwace' && !empty($ob['mobile']))
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <div class="form-group row">
+                                                    <label for="digitwace_service" class="col-4 col-form-label">Opérateur Mobile Money
+                                                        (si erreur "plusieurs services")</label>
+                                                    <div class="col-8">
+                                                        {{-- NOTE : pas de pre-remplissage "selected" ici -- $dwExtra
+                                                             (session dw_extra_{id}) n'est pas transmis a cette vue par le
+                                                             controleur (voir TransactionController::quote(), compact() sans
+                                                             'dwExtra'), contrairement a receiver_relation/transaction_reference/
+                                                             transaction_reason qui viennent directement de $transaction (BDD).
+                                                             Laisser sur "Automatique" reste le comportement correct la
+                                                             plupart du temps (un seul operateur disponible hors CI). --}}
+                                                        <select class="form-control" name="digitwace_service" id="digitwace_service">
+                                                            <option value="">— Automatique —</option>
+                                                            <option value="MOMO">MOMO (MTN MONEY)</option>
+                                                            <option value="MTN">MTN (MTN MOBILE MONEY)</option>
+                                                            <option value="MV">MV (MOOV)</option>
+                                                            <option value="OM">OM (ORANGE MONEY)</option>
+                                                            <option value="WV">WV (WAVE)</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        @endif
                                     </fieldset>
                                     <div class="row">
                                         <div class="col-6">

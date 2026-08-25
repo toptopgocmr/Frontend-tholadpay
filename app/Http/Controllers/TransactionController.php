@@ -1063,6 +1063,17 @@ class TransactionController extends Controller
                                 $dwExtra = $request->session()->get('dw_extra_' . $id, []);
                                 $dwExtra['origin_fund'] = trim((string) $request->get('origin')) ?: ($dwExtra['origin_fund'] ?? '');
                                 $dwExtra['reason'] = trim((string) $request->get('reason')) ?: ($dwExtra['reason'] ?? '');
+                                // AJOUT (2026-08-25, incident transaction #150/#144, erreur WACEPAY
+                                // "Plusieurs services DigitWace de type 'wallet' sont disponibles pour
+                                // CI/XOF, precisez 'digitwace_service'") : la Cote d'Ivoire a 5 operateurs
+                                // Mobile Money actifs chez WACEPAY (MOMO/MTN/MV/OM/WV) -- quand la
+                                // deduction automatique depuis le numero du beneficiaire ne suffit pas a
+                                // choisir un operateur unique (voir OutboundController::
+                                // resolveDigitwacePayerCode, $brandHint), l'envoi etait bloque sans
+                                // aucun moyen pour l'agent de preciser l'operateur cote admin (le champ
+                                // 'digitwace_service' existait deja cote backend mais rien ne l'envoyait
+                                // depuis ce formulaire). Voir le nouveau select dans quote.blade.php.
+                                $dwExtra['digitwace_service'] = trim((string) $request->get('digitwace_service')) ?: ($dwExtra['digitwace_service'] ?? '');
                                 $request->session()->put('dw_extra_' . $id, $dwExtra);
                             }
 
@@ -1338,6 +1349,12 @@ class TransactionController extends Controller
                                     // dob/expire_date sur tout bénéficiaire, pas seulement Business.
                                     $infoTrans['receiver_dob'] = $dwExtra['receiver_dob'] ?? '';
                                     $infoTrans['receiver_expire_date'] = $dwExtra['receiver_expire_date'] ?? '';
+                                    // AJOUT (2026-08-25) : voir commentaire sur $dwExtra['digitwace_service']
+                                    // ci-dessus (quote()) — transmis seulement si renseigné, pour laisser
+                                    // resolveDigitwacePayerCode() deviner automatiquement sinon.
+                                    if (!empty($dwExtra['digitwace_service'])) {
+                                        $infoTrans['digitwace_service'] = $dwExtra['digitwace_service'];
+                                    }
                                 }
                                 // dump($infoTrans);
 
@@ -1403,6 +1420,11 @@ class TransactionController extends Controller
                                     // dob/expire_date sur tout bénéficiaire, pas seulement Business.
                                     $infoTrans['receiver_dob'] = $dwExtra['receiver_dob'] ?? '';
                                     $infoTrans['receiver_expire_date'] = $dwExtra['receiver_expire_date'] ?? '';
+                                    // AJOUT (2026-08-25, incident transaction #150/#144) : voir
+                                    // commentaire sur $dwExtra['digitwace_service'] ci-dessus (quote()).
+                                    if (!empty($dwExtra['digitwace_service'])) {
+                                        $infoTrans['digitwace_service'] = $dwExtra['digitwace_service'];
+                                    }
                                 }
                                 // AJOUT (2026-08-20) : champs exigés par PawaPay (voir
                                 // OutboundController::sendPawapayRemittance/requirePawapayReferenceFields),
