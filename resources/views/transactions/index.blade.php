@@ -110,12 +110,31 @@
                                 </div>
                             </form>
                             {{--                                : {{ $date->format('l jS F Y ') }}</p>--}}
+                            {{-- AJOUT (2026-08-25, demande explicite : "sur taxes egalement merci
+                                 de les lister et laisser aussi le total figurer") : totaux calculés sur
+                                 la liste actuellement affichée (mêmes filtres que le tableau/l'export
+                                 Excel ci-dessous), affichés en pied de tableau (voir <tfoot> plus bas). --}}
+                            @php
+                                $totalMontant = collect($transactions)->sum(function ($t) { return (float) ($t['amount'] ?? 0); });
+                                $totalPercu = collect($transactions)->sum(function ($t) { return (float) ($t['montant_beneficiaire'] ?? 0); });
+                                $totalFrais = collect($transactions)->sum(function ($t) { return (float) ($t['fees'] ?? 0); });
+                                $totalTaxes = collect($transactions)->sum(function ($t) { return (float) ($t['total_taxes'] ?? 0); });
+                            @endphp
                             <table id="datatable-buttons"
                                    class="table table-stripeld table-bordered dt-responsive nowrap"
                                    style="border-collapse: collapse; border-spacing: 0; width: 100%;">
                                 <thead>
                                 <tr>
                                     <th>Code</th>
+                                    <!-- AJOUT (2026-08-25, demande explicite : "l'ID de la transaction
+                                         chez le partenaire manque dans l'exportation") : $trans['reference']
+                                         est déjà alimenté avec l'identifiant renvoyé par le partenaire
+                                         (Peex/DigitWace/PawaPay) une fois l'envoi confirmé — voir
+                                         TransactionController::sendtransaction(), $tran2Update['reference']
+                                         = $p['track_id'] ?? $p['reference'] ?? ... — mais n'était affiché
+                                         nulle part. 'Code' (ci-dessus) reste NOTRE référence interne
+                                         ($trans['ranking']), inchangée. -->
+                                    <th>ID Transaction Partenaire</th>
                                     <th>Agent</th>
                                     <th>Emetteur</th>
                                     <th>Beneficiaire</th>
@@ -135,6 +154,7 @@
                                 @forelse ($transactions as $trans)
                                     <tr>
                                         <td>{{$trans['ranking']}}</td>
+                                        <td>{{ $trans['reference'] ?? '—' }}</td>
                                         <td>
                                             {{(isset($trans['valid']) && $trans['valid'] !== null) ? $trans['valid']['full_name'] : $trans['agent']['nom_commercial']}}
                                         </td>
@@ -195,10 +215,20 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="8">Aucun enregistrement trouvé</td>
+                                        <td colspan="14">Aucun enregistrement trouvé</td>
                                     </tr>
                                 @endforelse
                                 </tbody>
+                                <tfoot>
+                                <tr>
+                                    <th colspan="5" style="text-align: right;">TOTAL</th>
+                                    <th>{{ number_format($totalMontant, 2, ',', ' ') }}</th>
+                                    <th>{{ number_format($totalPercu, 2, ',', ' ') }}</th>
+                                    <th>{{ number_format($totalFrais, 2, ',', ' ') }}</th>
+                                    <th>{{ number_format($totalTaxes, 2, ',', ' ') }}</th>
+                                    <th colspan="5"></th>
+                                </tr>
+                                </tfoot>
                             </table>
                         </div>
                     </div>
