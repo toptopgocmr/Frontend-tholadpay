@@ -1106,6 +1106,10 @@ class TransactionController extends Controller
                                 // 'digitwace_service' existait deja cote backend mais rien ne l'envoyait
                                 // depuis ce formulaire). Voir le nouveau select dans quote.blade.php.
                                 $dwExtra['digitwace_service'] = trim((string) $request->get('digitwace_service')) ?: ($dwExtra['digitwace_service'] ?? '');
+                                // AJOUT (2026-08-26) : voir commentaire detaille sur $bankList plus bas
+                                // (rendu de la vue GET) -- meme principe que digitwace_service ci-dessus,
+                                // pour la banque exacte exigee par DigitWace sur un virement bancaire.
+                                $dwExtra['bank_id'] = trim((string) $request->get('bank_id')) ?: ($dwExtra['bank_id'] ?? '');
                                 $request->session()->put('dw_extra_' . $id, $dwExtra);
                             }
 
@@ -1225,7 +1229,43 @@ class TransactionController extends Controller
             // dump($e->getMessage());
             return redirect()->route('transaction_list')->with('error', 'Erreur lors de la validation du compte.');
         }
-        return view('transactions.quote', compact('currency', 'type', 'token', 'role', 'user', 'menu', 'transaction', 'partner', 'quote', 'partnerChoice'));
+        // AJOUT (2026-08-26, incident transaction #161, erreur DigitWace "bank_id est
+        // requis pour DigitWace (banques trouvees : ...)") : pour un virement BANCAIRE
+        // via DigitWace, WACEPAY exige un bank_id precis de SA propre liste (doc §XIII
+        // getBankList) -- le nom de banque saisi en texte libre par le client a l'etape
+        // 1 (mobile) ne correspond pas forcement exactement a cette liste (constate sur
+        // un virement vers la France, 12 banques disponibles). Jusqu'ici RIEN ne
+        // permettait a l'agent de choisir -- il decouvrait la liste des banques
+        // valides seulement dans le message d'erreur, sans aucun champ pour la
+        // renseigner et reessayer. On recupere donc ici la liste (memes conditions
+        // qu'un futur appel sendDigitwaceBankTransaction : meme pays/devise) pour
+        // peupler un select cote quote.blade.php, voir aussi le nouveau champ
+        // 'bank_id' capture plus haut dans dw_extra_{id} et reinjecte dans
+        // sendtransaction().
+        $bankList = [];
+        if ($partnerChoice === 'digitwace' && !empty($transaction['outbound']['bank'])) {
+            try {
+                $bankListResp = $client->get(config('keys.url_api') . 'get_digitwace_bank_list', [
+                    'verify' => false,
+                    'query' => [
+                        'country' => $transaction['receiving_country_code'],
+                        'currency' => $transaction['to_currency'],
+                    ],
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                        'Authorization' => 'Bearer ' . $token
+                    ]
+                ]);
+                $bankListResp = json_decode($bankListResp->getBody()->getContents(), true);
+                $bankList = $bankListResp['data'] ?? [];
+            } catch (\Exception $e) {
+                // Non bloquant : si la liste ne se charge pas ici, l'agent verra quand
+                // meme le message d'erreur detaille (avec la liste) au moment de
+                // sendtransaction() -- voir OutboundController::sendDigitwaceBankTransaction.
+                $bankList = [];
+            }
+        }
+        return view('transactions.quote', compact('currency', 'type', 'token', 'role', 'user', 'menu', 'transaction', 'partner', 'quote', 'partnerChoice', 'bankList'));
     }
 
 
@@ -1386,6 +1426,19 @@ class TransactionController extends Controller
                                     // resolveDigitwacePayerCode() deviner automatiquement sinon.
                                     if (!empty($dwExtra['digitwace_service'])) {
                                         $infoTrans['digitwace_service'] = $dwExtra['digitwace_service'];
+                                    }
+                                    // AJOUT (2026-08-26, incident transaction #161, erreur "bank_id est
+                                    // requis pour DigitWace") : voir OutboundController::
+                                    // sendDigitwaceBankTransaction, qui accepte deja 'bank_id' mais ne le
+                                    // recevait jamais depuis l'admin -- l'agent restait bloque des qu'un
+                                    // pays a plusieurs banques chez DigitWace (ex: France, 12 banques) et
+                                    // que le nom saisi cote mobile ne correspondait pas exactement a la
+                                    // liste WACEPAY. Transmis seulement si renseigne (voir nouveau select
+                                    // dans quote.blade.php, alimente par $bankList) ; sinon
+                                    // sendDigitwaceBankTransaction retombe sur son ancienne logique de
+                                    // correspondance par bank_name.
+                                    if (!empty($dwExtra['bank_id'])) {
+                                        $infoTrans['bank_id'] = $dwExtra['bank_id'];
                                     }
                                 }
                                 // dump($infoTrans);

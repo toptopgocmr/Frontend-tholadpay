@@ -189,6 +189,40 @@
                                             </div>
                                         </div>
                                         @endif
+                                        {{-- AJOUT (2026-08-26, incident transaction #161, erreur DigitWace
+                                             "bank_id est requis pour DigitWace (banques trouvees : ...)") : un
+                                             virement BANCAIRE via DigitWace exige un bank_id precis de la
+                                             liste DigitWace du pays (doc getBankList) -- le nom de banque saisi
+                                             en texte libre par le client a la creation (mobile) ne correspond
+                                             pas toujours exactement (constate sur un virement vers la France,
+                                             12 banques disponibles chez DigitWace). Jusqu'ici l'agent decouvrait
+                                             la liste valide seulement dans le message d'erreur final, sans
+                                             aucun moyen de la renseigner et reessayer. $bankList est chargee
+                                             cote controleur (TransactionController::getquotation(), voir
+                                             commentaire detaille la-bas) via get_digitwace_bank_list. --}}
+                                        @if ($partnerChoice === 'digitwace' && !empty($ob['bank']))
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <div class="form-group row">
+                                                    <label for="bank_id" class="col-4 col-form-label">Banque DigitWace
+                                                        (si erreur "bank_id requis")</label>
+                                                    <div class="col-8">
+                                                        @if (!empty($bankList))
+                                                        <select class="form-control" name="bank_id" id="bank_id">
+                                                            <option value="">— Sélectionner —</option>
+                                                            @foreach ($bankList as $bank)
+                                                                <option value="{{ $bank['BankID'] ?? '' }}">{{ $bank['BankName'] ?? ('Banque #' . ($bank['BankID'] ?? '?')) }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                        @else
+                                                        <input type="text" class="form-control" name="bank_id" id="bank_id" placeholder="ID banque DigitWace (voir message d'erreur ci-dessus si déjà affiché)">
+                                                        <small class="form-text text-muted">La liste des banques n'a pas pu être chargée automatiquement — laissez vide pour laisser DigitWace deviner, ou saisissez l'ID exact indiqué dans un message d'erreur précédent.</small>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        @endif
                                     </fieldset>
                                     <div class="row">
                                         <div class="col-6">
