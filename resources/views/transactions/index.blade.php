@@ -135,12 +135,28 @@
                                          nulle part. 'Code' (ci-dessus) reste NOTRE référence interne
                                          ($trans['ranking']), inchangée. -->
                                     <th>ID Transaction Partenaire</th>
+                                    <!-- AJOUT (2026-08-26, demande explicite) : quel partenaire (DigitWace/
+                                         Peex/PawaPay/interne) a traite la transaction -- $trans['nom_api']
+                                         est deja alimente (voir TransactionController::sendtransaction(),
+                                         'nom_api' => $partner['client']['name']) mais n'etait affiche nulle
+                                         part avant. Rend la colonne "Frais (XAF)" juste apres (la commission
+                                         effectivement facturee par ce partenaire) directement lisible. -->
+                                    <th>Partenaire</th>
                                     <th>Agent</th>
                                     <th>Emetteur</th>
                                     <th>Beneficiaire</th>
                                     <th>Montant <span style="font-size: 10px">(XAF)</span></th>
                                     <th>M. percu</th>
                                     <th>Frais <span style="font-size: 10px">(XAF)</span></th>
+                                    <!-- AJOUT (2026-08-26, demande explicite) : detail des 4 taxes deja
+                                         calculees automatiquement par TaxCalculationService/Transaction.ttf,
+                                         commission_cobac, timbre_electronique, tva (voir migration
+                                         add_taxes_to_transactions_table) -- jusqu'ici seule leur somme
+                                         (total_taxes, colonne "Taxes (XAF)" juste apres) etait exportee. -->
+                                    <th>TTF <span style="font-size: 10px">(XAF)</span></th>
+                                    <th>Commission BEAC <span style="font-size: 10px">(XAF)</span></th>
+                                    <th>Timbre Electronique <span style="font-size: 10px">(XAF)</span></th>
+                                    <th>TVA <span style="font-size: 10px">(XAF)</span></th>
                                     <th>Taxes <span style="font-size: 10px">(XAF)</span></th>
                                     <th>Pays</th>
                                     <th>Type</th>
@@ -155,6 +171,7 @@
                                     <tr>
                                         <td>{{$trans['ranking']}}</td>
                                         <td>{{ $trans['reference'] ?? '—' }}</td>
+                                        <td>{{ $trans['nom_api'] ?? '—' }}</td>
                                         <td>
                                             {{(isset($trans['valid']) && $trans['valid'] !== null) ? $trans['valid']['full_name'] : $trans['agent']['nom_commercial']}}
                                         </td>
@@ -163,6 +180,10 @@
                                         <td>{{$trans['amount']}}</td>
                                         <td>{{$trans['montant_beneficiaire']}}  <span style="font-size: 10px">({{$trans['to_currency']}})</span></td>
                                         <td>{{$trans['fees']}}</td>
+                                        <td>{{$trans['ttf'] ?? 0}}</td>
+                                        <td>{{$trans['commission_cobac'] ?? 0}}</td>
+                                        <td>{{$trans['timbre_electronique'] ?? 0}}</td>
+                                        <td>{{$trans['tva'] ?? 0}}</td>
                                         <td>{{$trans['total_taxes'] ?? 0}}</td>
                                         <td>{{strtoupper($trans['receiving_country'])}}</td>
                                         {{-- FIX (2026-08-08) : ce ternaire (outbound.bank null => 'Mobile') datait
@@ -215,16 +236,25 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="14">Aucun enregistrement trouvé</td>
+                                        <td colspan="19">Aucun enregistrement trouvé</td>
                                     </tr>
                                 @endforelse
                                 </tbody>
+                                <!-- FIX (2026-08-26, demande explicite : "retirer les total, total") :
+                                     le bouton Excel (voir datatables.init.js) exportait ce <tfoot> en
+                                     aplatissant le colspan="5" -- "TOTAL" se retrouvait repete tel quel
+                                     dans CHAQUE colonne texte (Code/ID Transaction Partenaire/Partenaire/
+                                     Agent/Emetteur/Beneficiaire), illisible dans le fichier telecharge.
+                                     footer:false desormais cote export (voir datatables.init.js) ; ce
+                                     <tfoot> reste affiche a l'ecran (utile pour parcourir la liste), mis
+                                     a jour pour les 5 nouvelles colonnes (colspan total = 19). -->
                                 <tfoot>
                                 <tr>
-                                    <th colspan="5" style="text-align: right;">TOTAL</th>
+                                    <th colspan="6" style="text-align: right;">TOTAL</th>
                                     <th>{{ number_format($totalMontant, 2, ',', ' ') }}</th>
                                     <th>{{ number_format($totalPercu, 2, ',', ' ') }}</th>
                                     <th>{{ number_format($totalFrais, 2, ',', ' ') }}</th>
+                                    <th colspan="4"></th>
                                     <th>{{ number_format($totalTaxes, 2, ',', ' ') }}</th>
                                     <th colspan="5"></th>
                                 </tr>

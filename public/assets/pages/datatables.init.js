@@ -8,20 +8,19 @@ $(document).ready(function() {
     $('#datatable').DataTable();
 
     //Buttons examples
-    // FIX (2026-08-25, demande explicite : "laisser aussi le total figurer" dans
-    // l'export Excel des transactions) : Buttons for DataTables 1.5.2 (version
-    // utilisée ici, voir dataTables.buttons.min.js) n'inclut PAS le <tfoot> dans
-    // les exports par défaut (ce comportement n'est devenu la valeur par défaut
-    // qu'à partir de Buttons 3, cf. doc officielle datatables.net/extensions/
-    // buttons/examples/html5/footer.html). 'excel' (raccourci pour 'excelHtml5')
-    // remplacé par un objet explicite avec footer:true pour que la ligne TOTAL
-    // (voir <tfoot> dans transactions/index.blade.php) apparaisse bien dans le
-    // fichier Excel téléchargé. Sans effet sur les autres tables partageant ce
-    // même fichier JS : footer:true n'a aucun effet si la table n'a pas de
-    // <tfoot> (aucune des autres pages utilisant #datatable-buttons n'en a).
+    // FIX (2026-08-26, demande explicite : "retirer les total, total") : revert
+    // du footer:true ajoute le 2026-08-25 -- Buttons pour DataTables 1.5.2 n'a
+    // aucune notion de colspan lors de l'export du <tfoot> : la ligne TOTAL
+    // (colspan="6" sur les colonnes texte, voir <tfoot> dans transactions/
+    // index.blade.php) se retrouvait avec "TOTAL" recopie tel quel dans CHAQUE
+    // colonne du groupe au lieu d'une seule cellule fusionnee -- illisible dans
+    // le fichier Excel telecharge. Le <tfoot> reste affiche a l'ecran (toujours
+    // utile en parcourant la liste), simplement plus inclus dans l'export.
+    // Sans effet sur les autres tables partageant ce meme fichier JS (aucune
+    // des autres pages utilisant #datatable-buttons n'a de <tfoot>).
     var table = $('#datatable-buttons').DataTable({
         lengthChange: false,
-        buttons: ['copy', {extend: 'excelHtml5', footer: true}, 'pdf', 'colvis']
+        buttons: ['copy', {extend: 'excelHtml5', footer: false}, 'pdf', 'colvis']
     });
 
     table.buttons().container()
