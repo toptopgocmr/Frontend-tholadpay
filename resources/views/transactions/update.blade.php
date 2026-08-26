@@ -236,6 +236,44 @@
                                                     </div>
                                                 </div>
                                             </div>
+                                            {{-- AJOUT (2026-08-26, demande explicite : "le formulaire beneficiaire
+                                                 avec tous les champs manquants") : DigitWace (doc §VI Create
+                                                 Beneficiary) accepte address/city/email du bénéficiaire — le backend
+                                                 (OutboundController::createDigitwaceBeneficiary) les lisait déjà,
+                                                 mais ce formulaire ne les proposait jamais, d'où un repli
+                                                 systématique sur "Any City" / le pays de réception comme adresse /
+                                                 email toujours vide. Voir migration
+                                                 add_receiver_address_city_email_to_transactions_table. --}}
+                                            <div class="row">
+                                                <div class="col-4">
+                                                    <div class="form-group row">
+                                                        <label for="receiver_address" class="col-4 col-form-label">Adresse bénéficiaire</label>
+                                                        <div class="col-8">
+                                                            <input type="text" class="form-control" name="receiver_address" id="receiver_address" value="{{ $transaction['receiver_address'] ?? '' }}">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-4">
+                                                    <div class="form-group row">
+                                                        {{-- NB : name="receiver_city", PAS receiver_city_benef ici — côté admin
+                                                             il n'y a pas de champ concurrent "ville de retrait" sur ce formulaire
+                                                             (le Cash Pickup a le sien, saisi côté mobile et affiché en lecture
+                                                             seule ailleurs sur cette page), donc pas de collision de nom. --}}
+                                                        <label for="receiver_city" class="col-4 col-form-label">Ville bénéficiaire</label>
+                                                        <div class="col-8">
+                                                            <input type="text" class="form-control" name="receiver_city" id="receiver_city" value="{{ $transaction['receiver_city'] ?? '' }}">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-4">
+                                                    <div class="form-group row">
+                                                        <label for="receiver_email" class="col-4 col-form-label">Email bénéficiaire</label>
+                                                        <div class="col-8">
+                                                            <input type="email" class="form-control" name="receiver_email" id="receiver_email" value="{{ $transaction['receiver_email'] ?? '' }}">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <p class="text-muted">DigitWace impose des valeurs précises (relation / origine des fonds / raison — voir étape 2) : utilisez les suggestions proposées.</p>
                                         </div>
                                         {{-- Champs propres à PawaPay (doc "Initiate remittance" — API Remittance,

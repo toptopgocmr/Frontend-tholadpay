@@ -856,6 +856,14 @@ class TransactionController extends Controller
                                 // comme les autres champs DigitWace pour survivre aux étapes 2/3.
                                 'receiver_dob' => trim((string) $request->get('receiver_dob')),
                                 'receiver_expire_date' => trim((string) $request->get('receiver_expire_date')),
+                                // AJOUT (2026-08-26, demande explicite : "le formulaire beneficiaire
+                                // avec tous les champs manquants") : voir migration
+                                // add_receiver_address_city_email_to_transactions_table et
+                                // update.blade.php -- meme principe que les champs DigitWace
+                                // ci-dessus, memorises ici pour survivre aux etapes 2/3.
+                                'receiver_address' => trim((string) $request->get('receiver_address')),
+                                'receiver_city' => trim((string) $request->get('receiver_city')),
+                                'receiver_email' => trim((string) $request->get('receiver_email')),
                             ]);
                         }
                         // AJOUT (2026-08-20) : mémorise le choix d'opérateur + motif/origine
@@ -1420,6 +1428,16 @@ class TransactionController extends Controller
                                     // OutboundController::createDigitwaceBeneficiary — DigitWace exige
                                     // dob/expire_date sur tout bénéficiaire, pas seulement Business.
                                     $infoTrans['receiver_dob'] = $dwExtra['receiver_dob'] ?? '';
+                                    // AJOUT (2026-08-26, demande explicite : "le formulaire beneficiaire
+                                    // avec tous les champs manquants") : voir migration
+                                    // add_receiver_address_city_email_to_transactions_table et
+                                    // update.blade.php -- adresse/ville/email reels du beneficiaire
+                                    // (doc DigitWace §VI), auparavant jamais transmis (repli
+                                    // systematique sur "Any City"/le pays de reception/email vide,
+                                    // voir OutboundController::createDigitwaceBeneficiary).
+                                    $infoTrans['receiver_address'] = $dwExtra['receiver_address'] ?? '';
+                                    $infoTrans['receiver_city'] = $dwExtra['receiver_city'] ?? '';
+                                    $infoTrans['receiver_email'] = $dwExtra['receiver_email'] ?? '';
                                     $infoTrans['receiver_expire_date'] = $dwExtra['receiver_expire_date'] ?? '';
                                     // AJOUT (2026-08-25) : voir commentaire sur $dwExtra['digitwace_service']
                                     // ci-dessus (quote()) — transmis seulement si renseigné, pour laisser
@@ -1504,6 +1522,16 @@ class TransactionController extends Controller
                                     // OutboundController::createDigitwaceBeneficiary — DigitWace exige
                                     // dob/expire_date sur tout bénéficiaire, pas seulement Business.
                                     $infoTrans['receiver_dob'] = $dwExtra['receiver_dob'] ?? '';
+                                    // AJOUT (2026-08-26, demande explicite : "le formulaire beneficiaire
+                                    // avec tous les champs manquants") : voir migration
+                                    // add_receiver_address_city_email_to_transactions_table et
+                                    // update.blade.php -- adresse/ville/email reels du beneficiaire
+                                    // (doc DigitWace §VI), auparavant jamais transmis (repli
+                                    // systematique sur "Any City"/le pays de reception/email vide,
+                                    // voir OutboundController::createDigitwaceBeneficiary).
+                                    $infoTrans['receiver_address'] = $dwExtra['receiver_address'] ?? '';
+                                    $infoTrans['receiver_city'] = $dwExtra['receiver_city'] ?? '';
+                                    $infoTrans['receiver_email'] = $dwExtra['receiver_email'] ?? '';
                                     $infoTrans['receiver_expire_date'] = $dwExtra['receiver_expire_date'] ?? '';
                                     // AJOUT (2026-08-25, incident transaction #150/#144) : voir
                                     // commentaire sur $dwExtra['digitwace_service'] ci-dessus (quote()).
@@ -1566,6 +1594,15 @@ class TransactionController extends Controller
                                     // dob/expire_date sur tout bénéficiaire, pas seulement Business.
                                     'receiver_dob' => $dwExtra['receiver_dob'] ?? '',
                                     'receiver_expire_date' => $dwExtra['receiver_expire_date'] ?? '',
+                                    // AJOUT (2026-08-26) : adresse/email reels du beneficiaire (doc
+                                    // DigitWace §VI) -- voir commentaire equivalent sur les branches
+                                    // Bank/Mobile plus haut. 'receiver_city' N'EST PAS ajoute ici : la
+                                    // ligne receiver_city ci-dessus porte deja la "ville de retrait" du
+                                    // Cash Pickup (outbound.cash.receiver_city), qui remplit exactement
+                                    // le meme role pour ce type de transaction -- l'ecraser avec
+                                    // $dwExtra['receiver_city'] romprait ce mecanisme existant.
+                                    'receiver_address' => $dwExtra['receiver_address'] ?? '',
+                                    'receiver_email' => $dwExtra['receiver_email'] ?? '',
                                 ];
                                 $p = $client->post(config('keys.url_api') . 'send_cash_transaction', [
                                     'verify' => false,
