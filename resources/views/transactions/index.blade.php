@@ -118,6 +118,15 @@
                                 $totalMontant = collect($transactions)->sum(function ($t) { return (float) ($t['amount'] ?? 0); });
                                 $totalPercu = collect($transactions)->sum(function ($t) { return (float) ($t['montant_beneficiaire'] ?? 0); });
                                 $totalFrais = collect($transactions)->sum(function ($t) { return (float) ($t['fees'] ?? 0); });
+                                // AJOUT (2026-08-26, correctif : "Frais (XAF)" ci-dessus est NOTRE frais
+                                // interne (tarif Send-Paz), pas la commission reellement facturee par le
+                                // partenaire -- constat terrain : transaction WPPX133328099158366, dashboard
+                                // WACEPAY "Total Fees: 675.00 XAF" contre 6600 XAF affiches ici avant ce
+                                // correctif (= notre 'fees'). partner_fee (nouvelle colonne, voir migration
+                                // add_partner_fee_to_transactions_table) est desormais capturee separement
+                                // depuis la reponse DigitWace/WACEPAY (transaction.feeds|fees) ; reste vide
+                                // pour Peex tant que Peex n'expose pas de champ equivalent.
+                                $totalPartnerFee = collect($transactions)->sum(function ($t) { return (float) ($t['partner_fee'] ?? 0); });
                                 $totalTaxes = collect($transactions)->sum(function ($t) { return (float) ($t['total_taxes'] ?? 0); });
                             @endphp
                             <table id="datatable-buttons"
@@ -148,6 +157,14 @@
                                     <th>Montant <span style="font-size: 10px">(XAF)</span></th>
                                     <th>M. percu</th>
                                     <th>Frais <span style="font-size: 10px">(XAF)</span></th>
+                                    <!-- AJOUT (2026-08-26, correctif : voir commentaire sur $totalPartnerFee
+                                         ci-dessus -- "Frais" (juste avant) reste notre frais interne, cette
+                                         colonne est la VRAIE commission facturee par DigitWace/WACEPAY (lue
+                                         via transaction.feeds a la creation ou transaction.fees via
+                                         check_transaction_status, voir OutboundController::
+                                         normalizeDigitwaceTransactionResponse). Vide ("—") pour Peex, qui
+                                         n'expose actuellement aucun champ equivalent. -->
+                                    <th>Commission Partenaire <span style="font-size: 10px">(XAF)</span></th>
                                     <!-- AJOUT (2026-08-26, demande explicite) : detail des 4 taxes deja
                                          calculees automatiquement par TaxCalculationService/Transaction.ttf,
                                          commission_cobac, timbre_electronique, tva (voir migration
@@ -180,6 +197,7 @@
                                         <td>{{$trans['amount']}}</td>
                                         <td>{{$trans['montant_beneficiaire']}}  <span style="font-size: 10px">({{$trans['to_currency']}})</span></td>
                                         <td>{{$trans['fees']}}</td>
+                                        <td>{{ isset($trans['partner_fee']) && $trans['partner_fee'] !== null ? $trans['partner_fee'] : '—' }}</td>
                                         <td>{{$trans['ttf'] ?? 0}}</td>
                                         <td>{{$trans['commission_cobac'] ?? 0}}</td>
                                         <td>{{$trans['timbre_electronique'] ?? 0}}</td>
@@ -236,7 +254,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="19">Aucun enregistrement trouvé</td>
+                                        <td colspan="20">Aucun enregistrement trouvé</td>
                                     </tr>
                                 @endforelse
                                 </tbody>
@@ -247,13 +265,14 @@
                                      Agent/Emetteur/Beneficiaire), illisible dans le fichier telecharge.
                                      footer:false desormais cote export (voir datatables.init.js) ; ce
                                      <tfoot> reste affiche a l'ecran (utile pour parcourir la liste), mis
-                                     a jour pour les 5 nouvelles colonnes (colspan total = 19). -->
+                                     a jour pour les 6 nouvelles colonnes (colspan total = 20, dont la colonne Commission Partenaire ajoutee separement le meme jour). -->
                                 <tfoot>
                                 <tr>
                                     <th colspan="6" style="text-align: right;">TOTAL</th>
                                     <th>{{ number_format($totalMontant, 2, ',', ' ') }}</th>
                                     <th>{{ number_format($totalPercu, 2, ',', ' ') }}</th>
                                     <th>{{ number_format($totalFrais, 2, ',', ' ') }}</th>
+                                    <th>{{ number_format($totalPartnerFee, 2, ',', ' ') }}</th>
                                     <th colspan="4"></th>
                                     <th>{{ number_format($totalTaxes, 2, ',', ' ') }}</th>
                                     <th colspan="5"></th>

@@ -177,7 +177,18 @@ class TransactionController extends Controller
 
                     // Normalisation DigitWace -> forme Peex, voir commentaire identique et
                     // plus détaillé dans checkStatusOfTransaction() ci-dessous.
+                    // AJOUT (2026-08-26, demande explicite : "essaie de voir si c'est possible
+                    // de prendre les commissions sur une api") : GET /transaction/status/{ref} (doc
+                    // §XI) renvoie transaction.fees (VRAIE commission WACEPAY, ex: "350.000") --
+                    // capture AVANT l'ecrasement de $res juste en dessous, pour pouvoir backfiller
+                    // Transaction.partner_fee des transactions deja envoyees (ex: encore "Pending"),
+                    // sans se limiter aux seules transactions creees apres ce correctif. Uniquement
+                    // si pas deja connue en base (evite un re-calcul inutile a chaque poll).
+                    $dwFeesBackfill = null;
                     if ($isDigitwaceTx && isset($res['transaction']) && is_array($res['transaction'])) {
+                        if (empty($tr['partner_fee']) && isset($res['transaction']['fees']) && is_numeric($res['transaction']['fees'])) {
+                            $dwFeesBackfill = (float) $res['transaction']['fees'];
+                        }
                         $dwStatusRaw = strtoupper((string) ($res['transaction']['Status'] ?? ''));
                         $statusMap = ['PAID' => 'paid', 'CANCEL' => 'failed'];
                         $res = [[
@@ -215,6 +226,9 @@ class TransactionController extends Controller
                             'date_complete' => @date('Y-m-d'),
                             'observations' => 'Transaction payée avec succès (' . $partnerLabel . ', statut "paid").'
                         ];
+                        if ($dwFeesBackfill !== null) {
+                            $maTrans['partner_fee'] = $dwFeesBackfill;
+                        }
                         // dump($maTrans);
                         $trans = $client->put(config('keys.url_api') . 'transactions/' . $tr['id'], [
                             'verify' => false,
@@ -257,6 +271,9 @@ class TransactionController extends Controller
                                 'date_complete' => @date('Y-m-d'),
                                 'observations' => $manage
                             ];
+                            if ($dwFeesBackfill !== null) {
+                                $maTrans['partner_fee'] = $dwFeesBackfill;
+                            }
                             // dump($maTrans);
                             $trans = $client->put(config('keys.url_api') . 'transactions/' . $tr['id'], [
                                 'verify' => false,
@@ -312,6 +329,21 @@ class TransactionController extends Controller
                     // else {
                     //     \Session::flash('error', 'Vérifier votre connexion internet !');
                     // }
+                    // AJOUT (2026-08-26) : transaction encore "pending" chez WACEPAY (aucune des
+                    // deux branches ci-dessus) mais dont la commission reelle vient d'etre lue --
+                    // on la backfille quand meme via une mise a jour minimale, sans attendre que
+                    // la transaction se termine (cas WPPX133328099158366 : "Pending" depuis
+                    // plusieurs jours, commission jamais enregistree autrement).
+                    if ($peexStatus !== 'paid' && !in_array($peexStatus, ['failed', 'rejected', 'canceled']) && $dwFeesBackfill !== null) {
+                        $client->put(config('keys.url_api') . 'transactions/' . $tr['id'], [
+                            'verify' => false,
+                            'headers' => [
+                                'Content-Type' => 'application/json',
+                                'Authorization' => 'Bearer ' . $token
+                            ],
+                            'json' => ['partner_fee' => $dwFeesBackfill]
+                        ]);
+                    }
                 }
             }
             // $transactions = $trans;
@@ -1526,6 +1558,20 @@ class TransactionController extends Controller
                                     'date_init' => $now,
                                     'date_complete' => $now,
                                 ];
+                                // AJOUT (2026-08-26, demande explicite : "essaie de voir si c'est
+                                // possible de prendre les commissions sur une api") : $p est la reponse
+                                // (normalisee) de send_bank_transaction/send_transaction/send_cash_transaction
+                                // -- pour DigitWace, OutboundController::normalizeDigitwaceTransactionResponse()
+                                // y expose desormais 'partner_fee' (= transaction.feeds cote WACEPAY, la VRAIE
+                                // commission facturee par le partenaire, distincte de notre 'fees' interne).
+                                // Peex ne fournit pour l'instant aucun champ equivalent (voir migration
+                                // 2026_08_26_090000_add_partner_fee_to_transactions_table) -- $tran2Update
+                                // n'ajoute donc la cle que si elle est presente, pour ne pas ecraser une
+                                // valeur deja backfillee par le polling de statut (index()/checkStatusOfTransaction())
+                                // avec un null.
+                                if (isset($p['partner_fee']) && is_numeric($p['partner_fee'])) {
+                                    $tran2Update['partner_fee'] = (float) $p['partner_fee'];
+                                }
                                 if ($isInternalTx) {
                                     $tran2Update['internal_pickup_code'] = $p['pickup_code'] ?? $p['reference'] ?? null;
                                 }
@@ -1710,7 +1756,14 @@ class TransactionController extends Controller
             // différent du tableau Peex {[{...,"status":"paid"}]}. On le ramène ici à la même
             // forme normalisée que Peex pour réutiliser telle quelle toute la logique
             // success/failed/pending ci-dessous (SMS, remboursement agent, etc.).
+            // AJOUT (2026-08-26) : voir commentaire identique et plus detaille dans index()
+            // ci-dessus -- meme capture de transaction.fees (vraie commission WACEPAY) avant
+            // ecrasement de $res, pour backfiller Transaction.partner_fee.
+            $dwFeesBackfill = null;
             if ($isDigitwaceTx && isset($res['transaction']) && is_array($res['transaction'])) {
+                if (empty($transaction['partner_fee']) && isset($res['transaction']['fees']) && is_numeric($res['transaction']['fees'])) {
+                    $dwFeesBackfill = (float) $res['transaction']['fees'];
+                }
                 $dwStatusRaw = strtoupper((string) ($res['transaction']['Status'] ?? ''));
                 $statusMap = ['PAID' => 'paid', 'CANCEL' => 'failed'];
                 $res = [[
@@ -1737,6 +1790,9 @@ class TransactionController extends Controller
                     'date_complete' => @date('Y-m-d'),
                     'observations' => 'Transaction payée avec succès (' . $partnerLabel . ', statut "paid").'
                 ];
+                if ($dwFeesBackfill !== null) {
+                    $maTrans['partner_fee'] = $dwFeesBackfill;
+                }
                 $trans = $client->put(config('keys.url_api') . 'transactions/' . $id, [
                     'verify' => false,
                     'headers' => [
@@ -1772,6 +1828,9 @@ class TransactionController extends Controller
                     'date_complete' => @date('Y-m-d'),
                     'observations' => $manage
                 ];
+                if ($dwFeesBackfill !== null) {
+                    $maTrans['partner_fee'] = $dwFeesBackfill;
+                }
                 $trans = $client->put(config('keys.url_api') . 'transactions/' . $id, [
                     'verify' => false,
                     'headers' => [
@@ -1825,6 +1884,20 @@ class TransactionController extends Controller
             } else if ($isBackendError) {
                 return redirect()->route('transaction_list')->with('error', $res['message'] ?? 'Erreur lors de la vérification du statut.');
             } else {
+                // AJOUT (2026-08-26) : voir commentaire identique dans index() -- transaction
+                // encore "pending" chez WACEPAY mais commission reelle deja connue -> backfill
+                // minimal (cas d'usage direct : bouton "Vérifier le statut" sur une transaction
+                // comme WPPX133328099158366, "Pending" depuis plusieurs jours).
+                if ($dwFeesBackfill !== null) {
+                    $client->put(config('keys.url_api') . 'transactions/' . $id, [
+                        'verify' => false,
+                        'headers' => [
+                            'Content-Type' => 'application/json',
+                            'Authorization' => 'Bearer ' . $token
+                        ],
+                        'json' => ['partner_fee' => $dwFeesBackfill]
+                    ]);
+                }
                 return redirect()->route('transaction_list')->with('error', 'Transaction en attente de traitement chez ' . $partnerLabel . ' (statut : ' . ($peexStatus ?? 'inconnu') . ').');
             }
         } catch (\Exception $e) {
