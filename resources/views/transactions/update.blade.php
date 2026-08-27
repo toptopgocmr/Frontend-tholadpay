@@ -161,6 +161,15 @@
                                                                  selectionnables. --}}
                                                             <select class="form-control" required name="relation" id="relation">
                                                                 <option value="">— Sélectionner —</option>
+                                                            {{-- FIX (2026-08-27) : valeurs live /api/get_digitwace_relations
+                                                                 ($dwRelations, voir TransactionController::update) au lieu de
+                                                                 l'instantane fige du 2026-08-25 -- repli sur cet instantane
+                                                                 uniquement si l'appel live a echoue (liste vide). --}}
+                                                            @if(!empty($dwRelations))
+                                                                @foreach(array_keys($dwRelations) as $rel)
+                                                                    <option value="{{ $rel }}" {{ ($transaction['receiver_relation'] ?? '') === $rel ? 'selected' : '' }}>{{ $rel }}</option>
+                                                                @endforeach
+                                                            @else
                                                             <option value="Brother" {{ ($transaction['receiver_relation'] ?? '') === "Brother" ? 'selected' : '' }}>Brother</option>
                                                             <option value="Mother" {{ ($transaction['receiver_relation'] ?? '') === "Mother" ? 'selected' : '' }}>Mother</option>
                                                             <option value="Sister" {{ ($transaction['receiver_relation'] ?? '') === "Sister" ? 'selected' : '' }}>Sister</option>
@@ -208,6 +217,7 @@
                                                             <option value="Son In Law" {{ ($transaction['receiver_relation'] ?? '') === "Son In Law" ? 'selected' : '' }}>Son In Law</option>
                                                             <option value="Step Child" {{ ($transaction['receiver_relation'] ?? '') === "Step Child" ? 'selected' : '' }}>Step Child</option>
                                                             <option value="Colleague" {{ ($transaction['receiver_relation'] ?? '') === "Colleague" ? 'selected' : '' }}>Colleague</option>
+                                                            @endif
                                                             </select>
                                                         </div>
                                                     </div>

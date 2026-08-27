@@ -1031,7 +1031,28 @@ class TransactionController extends Controller
             return redirect()->route('transaction_list')
                 ->with('error', 'Erreur lors de la validation : ' . $e->getMessage());
         }
-        return view('transactions.update', compact('currency', 'client_id', 'type', 'token', 'role', 'user', 'menu', 'transaction', 'clientName', 'partner', 'partnerChoice', 'pawapayExtra'));
+        // AJOUT (2026-08-27, meme cause que $dwReasons/$dwOriginFunds dans
+        // getquotation() ci-dessous) : le <select> "relation" de update.blade.php
+        // contenait un instantane fige (47 valeurs, copie le 2026-08-25) de
+        // /api/get_digitwace_relations, alors que le mobile appelle ce meme
+        // endpoint en direct depuis ce jour-la -- source du meme ecart de listes.
+        $dwRelations = [];
+        if (($partnerChoice ?? 'peex') === 'digitwace') {
+            try {
+                $dwRelationsResp = $client->get(config('keys.url_api') . 'get_digitwace_relations', [
+                    'verify' => false,
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                        'Authorization' => 'Bearer ' . $token
+                    ]
+                ]);
+                $dwRelationsResp = json_decode($dwRelationsResp->getBody()->getContents(), true);
+                $dwRelations = $dwRelationsResp['data'] ?? [];
+            } catch (\Exception $e) {
+                $dwRelations = [];
+            }
+        }
+        return view('transactions.update', compact('currency', 'client_id', 'type', 'token', 'role', 'user', 'menu', 'transaction', 'clientName', 'partner', 'partnerChoice', 'pawapayExtra', 'dwRelations'));
     }
 
 
@@ -1273,7 +1294,48 @@ class TransactionController extends Controller
                 $bankList = [];
             }
         }
-        return view('transactions.quote', compact('currency', 'type', 'token', 'role', 'user', 'menu', 'transaction', 'partner', 'quote', 'partnerChoice', 'bankList'));
+        // AJOUT (2026-08-27, plainte "les listes de raisons de transfert et de
+        // relation n'ont pas les memes informations que celles sur l'admin") : les
+        // <select> "origin"/"reason" de quote.blade.php contenaient jusqu'ici un
+        // instantane fige (13/6 valeurs) copie manuellement le 2026-08-25 depuis
+        // /api/get_digitwace_reasons /get_digitwace_origin_funds -- alors que le
+        // mobile (transaction.page.ts::loadDigitwaceReferenceLists) appelle ces
+        // memes endpoints EN DIRECT depuis ce jour-la. Les deux listes divergent
+        // forcement des que DigitWace ajoute/retire/renomme une valeur cote WACEPAY.
+        // On recupere donc ici aussi les listes live, avec repli sur l'ancien
+        // instantane fige si l'appel echoue (voir quote.blade.php, meme principe
+        // que $bankList ci-dessus).
+        $dwReasons = [];
+        $dwOriginFunds = [];
+        if ($partnerChoice === 'digitwace') {
+            try {
+                $dwReasonsResp = $client->get(config('keys.url_api') . 'get_digitwace_reasons', [
+                    'verify' => false,
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                        'Authorization' => 'Bearer ' . $token
+                    ]
+                ]);
+                $dwReasonsResp = json_decode($dwReasonsResp->getBody()->getContents(), true);
+                $dwReasons = $dwReasonsResp['data'] ?? [];
+            } catch (\Exception $e) {
+                $dwReasons = [];
+            }
+            try {
+                $dwOriginFundsResp = $client->get(config('keys.url_api') . 'get_digitwace_origin_funds', [
+                    'verify' => false,
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                        'Authorization' => 'Bearer ' . $token
+                    ]
+                ]);
+                $dwOriginFundsResp = json_decode($dwOriginFundsResp->getBody()->getContents(), true);
+                $dwOriginFunds = $dwOriginFundsResp['data'] ?? [];
+            } catch (\Exception $e) {
+                $dwOriginFunds = [];
+            }
+        }
+        return view('transactions.quote', compact('currency', 'type', 'token', 'role', 'user', 'menu', 'transaction', 'partner', 'quote', 'partnerChoice', 'bankList', 'dwReasons', 'dwOriginFunds'));
     }
 
 

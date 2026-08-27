@@ -110,12 +110,22 @@
                                                              /api/get_digitwace_origin_funds sont selectionnables. --}}
                                                         <select class="form-control" required name="origin" id="origin">
                                                             <option value="">— Sélectionner —</option>
-                                                            <option value="Savings" {{ ($transaction['transaction_reference']) === "Savings" ? 'selected' : '' }}>Savings</option>
-                                                            <option value="Salary" {{ ($transaction['transaction_reference']) === "Salary" ? 'selected' : '' }}>Salary</option>
-                                                            <option value="Lottery" {{ ($transaction['transaction_reference']) === "Lottery" ? 'selected' : '' }}>Lottery</option>
-                                                            <option value="Loan" {{ ($transaction['transaction_reference']) === "Loan" ? 'selected' : '' }}>Loan</option>
-                                                            <option value="Business Income" {{ ($transaction['transaction_reference']) === "Business Income" ? 'selected' : '' }}>Business Income</option>
-                                                            <option value="Others" {{ ($transaction['transaction_reference']) === "Others" ? 'selected' : '' }}>Others</option>
+                                                            {{-- FIX (2026-08-27) : valeurs live /api/get_digitwace_origin_funds
+                                                                 ($dwOriginFunds, voir TransactionController::getquotation) au lieu
+                                                                 de l'instantane fige du 2026-08-25 -- repli sur cet instantane
+                                                                 uniquement si l'appel live a echoue (liste vide). --}}
+                                                            @if(!empty($dwOriginFunds))
+                                                                @foreach(array_keys($dwOriginFunds) as $o)
+                                                                    <option value="{{ $o }}" {{ ($transaction['transaction_reference']) === $o ? 'selected' : '' }}>{{ $o }}</option>
+                                                                @endforeach
+                                                            @else
+                                                                <option value="Savings" {{ ($transaction['transaction_reference']) === "Savings" ? 'selected' : '' }}>Savings</option>
+                                                                <option value="Salary" {{ ($transaction['transaction_reference']) === "Salary" ? 'selected' : '' }}>Salary</option>
+                                                                <option value="Lottery" {{ ($transaction['transaction_reference']) === "Lottery" ? 'selected' : '' }}>Lottery</option>
+                                                                <option value="Loan" {{ ($transaction['transaction_reference']) === "Loan" ? 'selected' : '' }}>Loan</option>
+                                                                <option value="Business Income" {{ ($transaction['transaction_reference']) === "Business Income" ? 'selected' : '' }}>Business Income</option>
+                                                                <option value="Others" {{ ($transaction['transaction_reference']) === "Others" ? 'selected' : '' }}>Others</option>
+                                                            @endif
                                                         </select>
                                                     </div>
                                                 </div>
@@ -134,19 +144,29 @@
                                                              selectionnables. --}}
                                                         <select class="form-control" required name="reason" id="reason">
                                                             <option value="">— Sélectionner —</option>
-                                                            <option value="Gift" {{ ($transaction['transaction_reason']) === "Gift" ? 'selected' : '' }}>Gift</option>
-                                                            <option value="Salary" {{ ($transaction['transaction_reason']) === "Salary" ? 'selected' : '' }}>Salary</option>
-                                                            <option value="Debt Settlement" {{ ($transaction['transaction_reason']) === "Debt Settlement" ? 'selected' : '' }}>Debt Settlement</option>
-                                                            <option value="Family Maintainance" {{ ($transaction['transaction_reason']) === "Family Maintainance" ? 'selected' : '' }}>Family Maintainance</option>
-                                                            <option value="Business Travel" {{ ($transaction['transaction_reason']) === "Business Travel" ? 'selected' : '' }}>Business Travel</option>
-                                                            <option value="Business Profits to Parents" {{ ($transaction['transaction_reason']) === "Business Profits to Parents" ? 'selected' : '' }}>Business Profits to Parents</option>
-                                                            <option value="Medical Expenses" {{ ($transaction['transaction_reason']) === "Medical Expenses" ? 'selected' : '' }}>Medical Expenses</option>
-                                                            <option value="Education Support" {{ ($transaction['transaction_reason']) === "Education Support" ? 'selected' : '' }}>Education Support</option>
-                                                            <option value="Real Estate" {{ ($transaction['transaction_reason']) === "Real Estate" ? 'selected' : '' }}>Real Estate</option>
-                                                            <option value="Taxes" {{ ($transaction['transaction_reason']) === "Taxes" ? 'selected' : '' }}>Taxes</option>
-                                                            <option value="Tuition Fees" {{ ($transaction['transaction_reason']) === "Tuition Fees" ? 'selected' : '' }}>Tuition Fees</option>
-                                                            <option value="Home Improvement" {{ ($transaction['transaction_reason']) === "Home Improvement" ? 'selected' : '' }}>Home Improvement</option>
-                                                            <option value="Savings" {{ ($transaction['transaction_reason']) === "Savings" ? 'selected' : '' }}>Savings</option>
+                                                            {{-- FIX (2026-08-27) : valeurs live /api/get_digitwace_reasons
+                                                                 ($dwReasons, voir TransactionController::getquotation) au lieu
+                                                                 de l'instantane fige du 2026-08-25 -- repli sur cet instantane
+                                                                 uniquement si l'appel live a echoue (liste vide). --}}
+                                                            @if(!empty($dwReasons))
+                                                                @foreach(array_keys($dwReasons) as $r)
+                                                                    <option value="{{ $r }}" {{ ($transaction['transaction_reason']) === $r ? 'selected' : '' }}>{{ $r }}</option>
+                                                                @endforeach
+                                                            @else
+                                                                <option value="Gift" {{ ($transaction['transaction_reason']) === "Gift" ? 'selected' : '' }}>Gift</option>
+                                                                <option value="Salary" {{ ($transaction['transaction_reason']) === "Salary" ? 'selected' : '' }}>Salary</option>
+                                                                <option value="Debt Settlement" {{ ($transaction['transaction_reason']) === "Debt Settlement" ? 'selected' : '' }}>Debt Settlement</option>
+                                                                <option value="Family Maintainance" {{ ($transaction['transaction_reason']) === "Family Maintainance" ? 'selected' : '' }}>Family Maintainance</option>
+                                                                <option value="Business Travel" {{ ($transaction['transaction_reason']) === "Business Travel" ? 'selected' : '' }}>Business Travel</option>
+                                                                <option value="Business Profits to Parents" {{ ($transaction['transaction_reason']) === "Business Profits to Parents" ? 'selected' : '' }}>Business Profits to Parents</option>
+                                                                <option value="Medical Expenses" {{ ($transaction['transaction_reason']) === "Medical Expenses" ? 'selected' : '' }}>Medical Expenses</option>
+                                                                <option value="Education Support" {{ ($transaction['transaction_reason']) === "Education Support" ? 'selected' : '' }}>Education Support</option>
+                                                                <option value="Real Estate" {{ ($transaction['transaction_reason']) === "Real Estate" ? 'selected' : '' }}>Real Estate</option>
+                                                                <option value="Taxes" {{ ($transaction['transaction_reason']) === "Taxes" ? 'selected' : '' }}>Taxes</option>
+                                                                <option value="Tuition Fees" {{ ($transaction['transaction_reason']) === "Tuition Fees" ? 'selected' : '' }}>Tuition Fees</option>
+                                                                <option value="Home Improvement" {{ ($transaction['transaction_reason']) === "Home Improvement" ? 'selected' : '' }}>Home Improvement</option>
+                                                                <option value="Savings" {{ ($transaction['transaction_reason']) === "Savings" ? 'selected' : '' }}>Savings</option>
+                                                            @endif
                                                         </select>
                                                     </div>
                                                 </div>
