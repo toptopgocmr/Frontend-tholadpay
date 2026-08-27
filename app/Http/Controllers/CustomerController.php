@@ -87,18 +87,28 @@ class CustomerController extends Controller
             array('value' => 'M', 'name' => 'Masculin'),
             array('value' => 'F', 'name' => 'Feminin')
         );
-        // FIX (2026-08-14, demande explicite) : liste alignée sur mobile-tholadpay
-        // (transaction.page.ts / customermodify.page.ts) — ne contenait avant que
-        // CNI/Passport, alors que des clients enregistrés avec un autre type de
-        // pièce (via l'app mobile) existent déjà en base.
+        // FIX (2026-08-27, demande explicite : "ajouter les elements dans les listes
+        // comme sur les captures de digitwace") : liste remplacée par les 16 codes
+        // ID Type réels de DigitWace, confirmés via l'UI admin WACEPAY elle-même
+        // (Sender Personal Informations > ID Type) — l'ancienne liste (CNI/Passport/
+        // Carte_sejour/...) était notre invention, jamais confirmée par DigitWace.
         $typeCartes = array(
-            array('value' => 'CNI', 'name' => 'Carte nationale d\'identité'),
-            array('value' => 'Passport', 'name' => 'Passeport'),
-            array('value' => 'Carte_sejour', 'name' => 'Carte de séjour'),
-            array('value' => 'Permis_conduire', 'name' => 'Permis de conduire'),
-            array('value' => 'Carte_resident', 'name' => 'Carte de Résident'),
-            array('value' => 'NIU', 'name' => 'NIU'),
-            array('value' => 'Carte_consulaire', 'name' => 'Carte consulaire')
+            array('value' => 'PP', 'name' => 'Passeport (PP)'),
+            array('value' => 'CI', 'name' => 'Carte d\'identité (CI)'),
+            array('value' => 'RCCM', 'name' => 'Numéro RCCM (RCCM)'),
+            array('value' => 'AG', 'name' => 'Accord commercial (AG)'),
+            array('value' => 'TAX', 'name' => 'Numéro fiscal (TAX)'),
+            array('value' => 'CPF', 'name' => 'Registre des personnes (CPF)'),
+            array('value' => 'CNPJ', 'name' => 'Registre national des personnes morales (CNPJ)'),
+            array('value' => 'FID', 'name' => 'Pièce d\'identité étranger (FID)'),
+            array('value' => 'CC', 'name' => 'Carte de citoyenneté (CC)'),
+            array('value' => 'CR', 'name' => 'Certificat de résidence (CR)'),
+            array('value' => 'SSP', 'name' => 'Permis de séjour spécial (SSP)'),
+            array('value' => 'LI', 'name' => 'Identité légale (LI)'),
+            array('value' => 'CNIC', 'name' => 'Carte d\'identité civile nationale (CNIC)'),
+            array('value' => 'BI', 'name' => 'Identifiant entreprise (BI)'),
+            array('value' => 'CID', 'name' => 'Carte de citoyen (CID)'),
+            array('value' => 'GCCID', 'name' => 'Carte d\'identité CCG (GCCID)')
         );
         try {
             $client = new Client();
@@ -232,6 +242,7 @@ class CustomerController extends Controller
                         'country' => 'Congo',
                         'sex' => $request->get('textSexe'),
                         'type_id' => $request->get('textCarte'),
+                        'civil_status' => $request->get('textCivilStatus') ?: 'Single',
                         'date_exp_id' => $myDate,
                         'valid' => $valid,
                         'user_id' => $res['data']['user']['id'],
@@ -318,15 +329,24 @@ class CustomerController extends Controller
             array('value' => 'M', 'name' => 'Masculin'),
             array('value' => 'F', 'name' => 'Feminin')
         );
-        // FIX (2026-08-14, demande explicite) : voir même correctif dans create() ci-dessus.
+        // FIX (2026-08-27, demande explicite) : voir même correctif dans create() ci-dessus.
         $typeCartes = array(
-            array('value' => 'CNI', 'name' => 'Carte nationale d\'identité'),
-            array('value' => 'Passport', 'name' => 'Passeport'),
-            array('value' => 'Carte_sejour', 'name' => 'Carte de séjour'),
-            array('value' => 'Permis_conduire', 'name' => 'Permis de conduire'),
-            array('value' => 'Carte_resident', 'name' => 'Carte de Résident'),
-            array('value' => 'NIU', 'name' => 'NIU'),
-            array('value' => 'Carte_consulaire', 'name' => 'Carte consulaire')
+            array('value' => 'PP', 'name' => 'Passeport (PP)'),
+            array('value' => 'CI', 'name' => 'Carte d\'identité (CI)'),
+            array('value' => 'RCCM', 'name' => 'Numéro RCCM (RCCM)'),
+            array('value' => 'AG', 'name' => 'Accord commercial (AG)'),
+            array('value' => 'TAX', 'name' => 'Numéro fiscal (TAX)'),
+            array('value' => 'CPF', 'name' => 'Registre des personnes (CPF)'),
+            array('value' => 'CNPJ', 'name' => 'Registre national des personnes morales (CNPJ)'),
+            array('value' => 'FID', 'name' => 'Pièce d\'identité étranger (FID)'),
+            array('value' => 'CC', 'name' => 'Carte de citoyenneté (CC)'),
+            array('value' => 'CR', 'name' => 'Certificat de résidence (CR)'),
+            array('value' => 'SSP', 'name' => 'Permis de séjour spécial (SSP)'),
+            array('value' => 'LI', 'name' => 'Identité légale (LI)'),
+            array('value' => 'CNIC', 'name' => 'Carte d\'identité civile nationale (CNIC)'),
+            array('value' => 'BI', 'name' => 'Identifiant entreprise (BI)'),
+            array('value' => 'CID', 'name' => 'Carte de citoyen (CID)'),
+            array('value' => 'GCCID', 'name' => 'Carte d\'identité CCG (GCCID)')
         );
         try {
             $client = new Client();
@@ -469,6 +489,7 @@ class CustomerController extends Controller
                         $usSend = [
                             'sex' => $request->get('textSexe'),
                             'type_id' => $request->get('textCarte'),
+                            'civil_status' => $request->get('textCivilStatus') ?: 'Single',
                             'date_exp_id' => $dateExpir,
                             'issuer_date' => $dateDeliv,
                             'issuer_country' => $request->get('lieuDeDeliv'),

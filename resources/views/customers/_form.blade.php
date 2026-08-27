@@ -39,10 +39,26 @@
                                                 <select class="form-control select2" id="textCarte" name="textCarte" required>
                                                     @if($type === 'add')<option value="">Selectionnez la piece</option> @endif
                                                     @if($type === 'edit' && $userEdit['sender'] !== null)
-                                                    <option value="{{ $userEdit['sender']['type_id']}}">{{($userEdit['sender']['type_id'] === 'CNI') ? 'Carte nationnal d\'identité ' : 'Passport'}}</option>@endif
+                                                    <option value="{{ $userEdit['sender']['type_id']}}" selected>{{ $userEdit['sender']['type_id']}}</option>@endif
                                                     @foreach($typeCartes as $typ)
                                                         <option value="{{ $typ['value']}}">{{$typ['name']}}</option>
                                                     @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- AJOUT (2026-08-27, demande explicite : "ajouter les elements dans les
+                                         listes comme sur les captures de digitwace") : "Civil status" (doc
+                                         DigitWace §V, Single/Married), confirmé via l'admin sandbox WACEPAY —
+                                         voir mobile-tholadpay transaction.page.html pour le même champ. -->
+                                    <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <label for="textCivilStatus" class="col-lg-3 col-form-label">Situation matrimoniale <i class="red">*</i></label>
+                                            <div class="col-lg-9">
+                                                <select class="form-control select2" id="textCivilStatus" name="textCivilStatus" required>
+                                                    @php($currentCivilStatus = ($type === 'edit' && $userEdit['sender'] !== null) ? ($userEdit['sender']['civil_status'] ?? 'Single') : 'Single')
+                                                    <option value="Single" @selected($currentCivilStatus === 'Single')>Célibataire</option>
+                                                    <option value="Married" @selected($currentCivilStatus === 'Married')>Marié(e)</option>
                                                 </select>
                                             </div>
                                         </div>
