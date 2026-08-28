@@ -269,9 +269,17 @@
                                                              il n'y a pas de champ concurrent "ville de retrait" sur ce formulaire
                                                              (le Cash Pickup a le sien, saisi côté mobile et affiché en lecture
                                                              seule ailleurs sur cette page), donc pas de collision de nom. --}}
-                                                        <label for="receiver_city" class="col-4 col-form-label">Ville bénéficiaire</label>
+                                                        <label for="receiver_city" class="col-4 col-form-label">Ville bénéficiaire <span class="text-danger">*</span></label>
                                                         <div class="col-8">
-                                                            <input type="text" class="form-control" name="receiver_city" id="receiver_city" value="{{ $transaction['receiver_city'] ?? '' }}">
+                                                            {{-- FIX (2026-08-27) : rendu obligatoire cote formulaire (miroir du
+                                                                 controle backend OutboundController::createDigitwaceBeneficiary) --
+                                                                 laisse vide, ce champ retombait silencieusement sur le texte
+                                                                 litteral 'Any City', rejete par WACEPAY pour la Chine (HTTP 404
+                                                                 "This city does not exist or is disabled"). Le div parent
+                                                                 #digitwaceFields est simplement masque (display:none) hors partenaire
+                                                                 DigitWace, pas retire du DOM : 'required' n'est donc applique par le
+                                                                 navigateur que quand ce bloc est visible, sans impact Peex/PawaPay. --}}
+                                                            <input type="text" class="form-control" name="receiver_city" id="receiver_city" value="{{ $transaction['receiver_city'] ?? '' }}" required>
                                                         </div>
                                                     </div>
                                                 </div>
