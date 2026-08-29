@@ -113,7 +113,10 @@
                             {{-- AJOUT (2026-08-25, demande explicite : "sur taxes egalement merci
                                  de les lister et laisser aussi le total figurer") : totaux calculés sur
                                  la liste actuellement affichée (mêmes filtres que le tableau/l'export
-                                 Excel ci-dessous), affichés en pied de tableau (voir <tfoot> plus bas). --}}
+                                 Excel ci-dessous). MAJ (2026-08-29, demande explicite : "retire la ligne
+                                 total etc") : le <tfoot> qui les affichait a l'ecran a ete retire ; ce
+                                 calcul reste ici (inoffensif, juste plus utilise dans la vue) au cas ou
+                                 un futur affichage des totaux serait redemande. --}}
                             @php
                                 $totalMontant = collect($transactions)->sum(function ($t) { return (float) ($t['amount'] ?? 0); });
                                 $totalPercu = collect($transactions)->sum(function ($t) { return (float) ($t['montant_beneficiaire'] ?? 0); });
@@ -258,26 +261,12 @@
                                     </tr>
                                 @endforelse
                                 </tbody>
-                                <!-- FIX (2026-08-26, demande explicite : "retirer les total, total") :
-                                     le bouton Excel (voir datatables.init.js) exportait ce <tfoot> en
-                                     aplatissant le colspan="5" -- "TOTAL" se retrouvait repete tel quel
-                                     dans CHAQUE colonne texte (Code/ID Transaction Partenaire/Partenaire/
-                                     Agent/Emetteur/Beneficiaire), illisible dans le fichier telecharge.
-                                     footer:false desormais cote export (voir datatables.init.js) ; ce
-                                     <tfoot> reste affiche a l'ecran (utile pour parcourir la liste), mis
-                                     a jour pour les 6 nouvelles colonnes (colspan total = 20, dont la colonne Commission Partenaire ajoutee separement le meme jour). -->
-                                <tfoot>
-                                <tr>
-                                    <th colspan="6" style="text-align: right;">TOTAL</th>
-                                    <th>{{ number_format($totalMontant, 2, ',', ' ') }}</th>
-                                    <th>{{ number_format($totalPercu, 2, ',', ' ') }}</th>
-                                    <th>{{ number_format($totalFrais, 2, ',', ' ') }}</th>
-                                    <th>{{ number_format($totalPartnerFee, 2, ',', ' ') }}</th>
-                                    <th colspan="4"></th>
-                                    <th>{{ number_format($totalTaxes, 2, ',', ' ') }}</th>
-                                    <th colspan="5"></th>
-                                </tr>
-                                </tfoot>
+                                <!-- FIX (2026-08-29, demande explicite : "retire la ligne total etc") :
+                                     <tfoot> TOTAL entierement retire de l'affichage ecran -- il persistait
+                                     encore une confusion visuelle (une ligne "TOTAL" a 0,00 s'affichait
+                                     meme quand "Aucun enregistrement trouve"). L'export Excel n'incluait
+                                     deja plus ce footer depuis le 26/08 (footer:false, voir
+                                     datatables.init.js) ; ce retrait supprime aussi la version ecran. -->
                             </table>
                         </div>
                     </div>
