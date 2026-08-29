@@ -279,7 +279,21 @@
                                                                  #digitwaceFields est simplement masque (display:none) hors partenaire
                                                                  DigitWace, pas retire du DOM : 'required' n'est donc applique par le
                                                                  navigateur que quand ce bloc est visible, sans impact Peex/PawaPay. --}}
-                                                            <input type="text" class="form-control" name="receiver_city" id="receiver_city" value="{{ $transaction['receiver_city'] ?? '' }}" required>
+                                                            {{-- AJOUT (2026-08-29, retour support DigitWace "Lesage" sur WhatsApp) :
+                                                                 pour certains corridors (Belgique, France... confirmes par DigitWace),
+                                                                 leur sandbox rejette le vrai nom de ville ("This city does not exist
+                                                                 or is disabled") et ils recommandent explicitement d'y mettre "Any City".
+                                                                 D'autres corridors (Chine) font l'inverse et exigent une vraie ville
+                                                                 reconnue (ex. "Beijing") -- "Any City" y est lui-meme rejete. D'ou un
+                                                                 simple bouton de raccourci plutot qu'une valeur par defaut : l'agent
+                                                                 choisit en connaissance de cause selon le pays du beneficiaire. --}}
+                                                            <div class="input-group">
+                                                                <input type="text" class="form-control" name="receiver_city" id="receiver_city" value="{{ $transaction['receiver_city'] ?? '' }}" required>
+                                                                <div class="input-group-append">
+                                                                    <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('receiver_city').value = 'Any City';" title="A utiliser si DigitWace rejette le vrai nom de ville (ex. Belgique, France) -- pas pour la Chine, qui exige une vraie ville.">Any City</button>
+                                                                </div>
+                                                            </div>
+                                                            <small class="form-text text-muted">Si DigitWace refuse la vraie ville ("This city does not exist or is disabled"), essayez "Any City" (recommande par leur support pour certains pays, ex. Belgique/France). Pour la Chine, utilisez une vraie ville (ex. Beijing) -- "Any City" y est refuse.</small>
                                                         </div>
                                                     </div>
                                                 </div>
