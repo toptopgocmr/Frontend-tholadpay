@@ -314,6 +314,17 @@
                                             <th>Pays de délivrance</th>
                                             <th>{{ $transaction['sender']['issuer_country'] }}</th>
                                         </tr>
+                                        {{-- AJOUT (2026-09-04, demande explicite : "le client inscrit ... l'adresse
+                                             email ... que l'admin n'affiche que des champs vide") : senders.email est
+                                             deja collecte cote mobile (transaction.page.ts, form trans1, champ
+                                             'email', envoye via addSender()) et deja fillable (Sender::$fillable) --
+                                             mais aucune vue admin ne l'affichait jamais, ce qui donnait l'impression
+                                             au client/agent que l'info etait perdue alors qu'elle etait bien en
+                                             base. Simple ajout d'affichage, aucune donnee a migrer. --}}
+                                        <tr>
+                                            <th>Email</th>
+                                            <th>{{ $transaction['sender']['email'] ?? '—' }}</th>
+                                        </tr>
                                         </thead>
                                         <tbody>
                                         </tbody>
