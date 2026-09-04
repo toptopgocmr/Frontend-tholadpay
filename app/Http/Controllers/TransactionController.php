@@ -97,17 +97,19 @@ class TransactionController extends Controller
             $d = @gmdate('Y-m-d');
             $host = config('keys.url_api');
             if ($role === 'administrator') {
-                $path = 'transactions?_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile,outbound.cash&per_page=3000&created_at=' . $d . '&_sortDir=desc';
+                $path = 'transactions?_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile,outbound.cash,validator&per_page=3000&created_at=' . $d . '&_sortDir=desc';
             } else if ($role === 'csa' || $role === 'finance_manager' || $role === 'technical_support') {
-                $path = 'transactions?_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile,outbound.cash&per_page=3000&created_at=' . $d . '&_sortDir=desc';
+                $path = 'transactions?_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile,outbound.cash,validator&per_page=3000&created_at=' . $d . '&_sortDir=desc';
             } else {
-                $path = 'transactions?agent_id=' . $agent['id'] . '&_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile,outbound.cash&per_page=3000&created_at=' . $d . '&_sortDir=desc';
+                $path = 'transactions?agent_id=' . $agent['id'] . '&_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile,outbound.cash,validator&per_page=3000&created_at=' . $d . '&_sortDir=desc';
             }
 
-            // $path = 'transactions?_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile,outbound.cash&per_page=3000&created_at='.$d.'&_sortDir=desc';
+            // $path = 'transactions?_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile,outbound.cash,validator&per_page=3000&created_at='.$d.'&_sortDir=desc';
             $host = $host . $path;
             $transactions = $client->get($host, [
                 'verify' => false,
+                'timeout' => 20,
+                'connect_timeout' => 5,
                 'headers' => [
                     'Content-Type' => 'application/json',
                     'Authorization' => 'Bearer ' . $token
@@ -115,22 +117,19 @@ class TransactionController extends Controller
             ]);
             $transactions = json_decode($transactions->getBody()->getContents(), true)['data'];
             $trans = [];
-            $tr['valid'] = null;
-            $tr['isnote'] = '0';
+            // FIX (2026-09-04, "Maximum execution time of 30 seconds exceeded") :
+            // meme correctif que TransactionController@search (voir commentaire
+            // detaille la-bas) -- ici aussi, 1 requete HTTP GET users/{id} etait
+            // faite PAR transaction validee, en boucle, sans timeout. Cette page
+            // (liste du jour) est la page d'accueil admin, chargee a chaque
+            // connexion : avec le volume grandissant de transactions, elle
+            // finira par declencher le meme FatalError que la recherche.
+            // Le validateur est maintenant fourni directement par le backend via
+            // Transaction::validator() (voir _includes plus haut) -- plus aucun
+            // appel HTTP supplementaire ici.
             foreach ($transactions as $tr) {
-                if (count($tr['notes']) > 0)
-                    $tr['isnote'] = '1';
-                if ($tr['valid_id'] !== null) {
-                    $usr = $client->get(config('keys.url_api') . 'users/' . $tr['valid_id'], [
-                        'verify' => false,
-                        'headers' => [
-                            'Content-Type' => 'application/json',
-                            'Authorization' => 'Bearer ' . $token
-                        ]
-                    ]);
-                    $usr = json_decode($usr->getBody()->getContents(), true);
-                    $tr['valid'] = $usr;
-                }
+                $tr['isnote'] = (count($tr['notes']) > 0) ? '1' : '0';
+                $tr['valid'] = $tr['validator'] ?? null;
                 array_push($trans, $tr);
             }
             $transactions = $trans;
@@ -138,7 +137,10 @@ class TransactionController extends Controller
 
             $trans = [];
             foreach ($transactions as $tr) { // on check le status des transaction envoyer a terrapay
-                $tr['valid'] = null;
+                // FIX (2026-09-04) : cette ligne ecrasait systematiquement a null le
+                // 'valid' (validateur) deja resolu par la boucle precedente -- "Validé
+                // par" restait donc toujours vide sur cette page, meme apres le
+                // correctif N+1 ci-dessus. On garde la valeur deja calculee.
                 $tr['isnote'] = '0';
                 if (count($tr['notes']) > 0)
                     $tr['isnote'] = '1';
@@ -583,17 +585,19 @@ class TransactionController extends Controller
             $dtEnc = rawurlencode($dt);
 
             if ($role === 'administrator') {
-                $path = 'transactions?_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile,outbound.cash&per_page=3000&created_at-bt=' . $deEnc . ',' . $dtEnc . '&_sortDir=desc';
+                $path = 'transactions?_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile,outbound.cash,validator&per_page=3000&created_at-bt=' . $deEnc . ',' . $dtEnc . '&_sortDir=desc';
             } else if ($role === 'csa' || $role === 'finance_manager' || $role === 'technical_support') {
-                $path = 'transactions?_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile,outbound.cash&per_page=3000&etat_transac=success&created_at-bt=' . $deEnc . ',' . $dtEnc . '&_sortDir=desc';
+                $path = 'transactions?_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile,outbound.cash,validator&per_page=3000&etat_transac=success&created_at-bt=' . $deEnc . ',' . $dtEnc . '&_sortDir=desc';
             } else {
                 // ✅ FIX 1 (suite) : $agent n'est plus null ici
                 $agentId = ($agent !== null && isset($agent['id'])) ? $agent['id'] : 0;
-                $path = 'transactions?agent_id=' . $agentId . '&_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile,outbound.cash&per_page=3000&created_at-bt=' . $deEnc . ',' . $dtEnc . '&_sortDir=desc';
+                $path = 'transactions?agent_id=' . $agentId . '&_includes=notes,sender,sender.user,agent,user,user.agent,outbound.bank,outbound.mobile,outbound.cash,validator&per_page=3000&created_at-bt=' . $deEnc . ',' . $dtEnc . '&_sortDir=desc';
             }
 
             $response = $client->get($host . $path, [
                 'verify' => false,
+                'timeout' => 20,
+                'connect_timeout' => 5,
                 'headers' => [
                     'Content-Type' => 'application/json',
                     'Authorization' => 'Bearer ' . $token
@@ -606,20 +610,22 @@ class TransactionController extends Controller
 
             // ✅ FIX 3 : plus d'initialisation de $tr avant le foreach
             $trans = [];
+            // FIX (2026-09-04, "Maximum execution time of 30 seconds exceeded") :
+            // avant, on faisait ICI 1 requete HTTP synchrone GET users/{id} PAR
+            // transaction validee (N+1), sans aucun timeout -- sur une recherche
+            // couvrant plusieurs semaines avec beaucoup de transactions validees,
+            // la somme de ces appels sequentiels depassait le max_execution_time
+            // de 30s de PHP et faisait planter la page de recherche admin
+            // (Symfony\Component\ErrorHandler\Error\FatalError, vu en prod le
+            // 2026-09-04 sur /admin/transactions/search). Le validateur est
+            // desormais recupere en une seule fois via la relation Eloquent
+            // Transaction::validator() (voir App-Backend-Tholadpay/app/Transaction.php),
+            // chargee par le backend en meme temps que la transaction grace au
+            // "validator" ajoute a _includes ci-dessus -- plus aucun appel HTTP
+            // supplementaire ici, quel que soit le nombre de transactions.
             foreach ($rawTransactions as $tr) {
                 $tr['isnote'] = (isset($tr['notes']) && count($tr['notes']) > 0) ? '1' : '0';
-                $tr['valid'] = null;
-
-                if (isset($tr['valid_id']) && $tr['valid_id'] !== null) {
-                    $usr = $client->get(config('keys.url_api') . 'users/' . $tr['valid_id'], [
-                        'verify' => false,
-                        'headers' => [
-                            'Content-Type' => 'application/json',
-                            'Authorization' => 'Bearer ' . $token
-                        ]
-                    ]);
-                    $tr['valid'] = json_decode($usr->getBody()->getContents(), true);
-                }
+                $tr['valid'] = $tr['validator'] ?? null;
                 array_push($trans, $tr);
             }
             $transactions = $trans;
