@@ -63,10 +63,27 @@ class LoginController extends Controller
                     $errors->add('error', 'Le serveur d\'authentification est injoignable. Verifiez que l\'API backend est demarree et accessible a : ' . config('keys.url_api'));
                     return view('auth.security.login', compact('errors'));
                 } catch (ClientException $exception) {
-                    // 4xx : l'API a repondu mais refuse (401/422 = mauvais identifiants).
+                    // 4xx : l'API a repondu mais refuse (401 = mauvais identifiants,
+                    // 403 = compte desactive/verrouille -- notamment apres 5 echecs de
+                    // connexion, voir AuthController::login cote backend).
                     $status = $exception->getResponse() ? $exception->getResponse()->getStatusCode() : 0;
-                    Log::warning('Login failed for ' . $email . ' (HTTP ' . $status . ')');
-                    $errors->add('error', 'Email ou mot de passe incorrect.');
+                    $body = $exception->getResponse()
+                        ? json_decode($exception->getResponse()->getBody()->getContents(), true)
+                        : null;
+                    // Format du helper Response::macro('error', ...) cote backend :
+                    // {"message": "<code> error", "errors": {"message": ["<texte reel>"]}, ...}
+                    $backendMessage = $body['errors']['message'][0] ?? null;
+                    Log::warning('Login failed for ' . $email . ' (HTTP ' . $status . ')' . ($backendMessage ? ' : ' . $backendMessage : ''));
+                    // MODIFIE (2026-09-05, demande explicite) : avant ce correctif, TOUT
+                    // echec (mauvais mot de passe OU compte verrouille) affichait le meme
+                    // message generique "Email ou mot de passe incorrect" -- l'utilisateur
+                    // ne pouvait donc jamais savoir que son compte venait d'etre bloque.
+                    // On relaie desormais le message precis du backend pour un 403.
+                    if ($status === 403 && $backendMessage) {
+                        $errors->add('error', $backendMessage);
+                    } else {
+                        $errors->add('error', 'Email ou mot de passe incorrect.');
+                    }
                     return view('auth.security.login', compact('errors'));
                 } catch (ServerException $exception) {
                     // 5xx : l'API est joignable mais plante cote serveur.
