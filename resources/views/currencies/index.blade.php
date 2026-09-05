@@ -28,6 +28,7 @@
                             <li class="breadcrumb-item active">Taux de change</li>
                         </ol>
                     </div>
+                    @if($role === 'administrator')
                     <div class="col-sm-6">
                         <!-- <div class="float-right d-none d-md-block">
                             <button class="btn_round_add btn-primary arrow-none waves-effect waves-light">
@@ -43,6 +44,7 @@
                             </button>
                         </div>
                     </div>
+                    @endif
                 </div> <!-- end row -->
             </div>
             <!-- end page-title -->
@@ -94,6 +96,7 @@
                                                  <a href="{{route('currency_show', $t['id'])}}"
                                                    class="btn btn-info btn-rounded waves-effect"><i
                                                             class="mdi mdi-information-variant"></i></a>
+                                                @if($role === 'administrator')
                                                 <a href="{{route('currency_edit', $t['id'])}}"
                                                    class="btn btn-warning btn-rounded waves-effect"><i
                                                             class="mdi mdi-circle-edit-outline"></i></a>
@@ -101,6 +104,7 @@
                                                    data-id="{{ $t['id'].'|||'.$t['code'] }}"
                                                    class="btn btn-danger btn-rounded waves-effect deleteModal"><i
                                                             class="mdi mdi-block-helper"></i></a>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>

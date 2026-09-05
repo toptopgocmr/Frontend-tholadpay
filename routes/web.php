@@ -104,9 +104,9 @@ Route::post('admin/roles/supprimer', [ 'middleware' => ['admin'], 'uses' => 'Rol
 Route::match(array('GET','POST'), 'admin/roles/{id}/detail', [ 'middleware' => ['admin'], 'uses' => 'RoleController@show', 'as' => 'role_show' ]);
 
 Route::get('admin/currencies', [ 'middleware' => ['all'], 'uses' => 'CurrencyController@index', 'as' => 'currency_list' ]);
-Route::match(array('GET','POST'), 'admin/currencies/ajouter', [ 'middleware' => ['all'], 'uses' => 'CurrencyController@create', 'as' => 'currency_add' ]);
-Route::match(array('GET','POST'), 'admin/currencies/{id}/modifier', [ 'middleware' => ['all'], 'uses' => 'CurrencyController@edit', 'as' => 'currency_edit' ]);
-Route::post('admin/currencies/supprimer', [ 'middleware' => ['all'], 'uses' => 'CurrencyController@delete', 'as' => 'currency_delete' ]);
+Route::match(array('GET','POST'), 'admin/currencies/ajouter', [ 'middleware' => ['admin'], 'uses' => 'CurrencyController@create', 'as' => 'currency_add' ]);
+Route::match(array('GET','POST'), 'admin/currencies/{id}/modifier', [ 'middleware' => ['admin'], 'uses' => 'CurrencyController@edit', 'as' => 'currency_edit' ]);
+Route::post('admin/currencies/supprimer', [ 'middleware' => ['admin'], 'uses' => 'CurrencyController@delete', 'as' => 'currency_delete' ]);
 Route::match(array('GET','POST'), 'admin/currencies/{id}/detail', [ 'middleware' => ['admin'], 'uses' => 'CurrencyController@show', 'as' => 'currency_show' ]);
 Route::match(array('GET','POST'), 'admin/initiates', [ 'middleware' => ['all'], 'uses' => 'InitiateController@create', 'as' => 'initiate_add' ]);
 
