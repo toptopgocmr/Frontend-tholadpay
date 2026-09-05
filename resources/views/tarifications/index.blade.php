@@ -28,6 +28,7 @@
                             <li class="breadcrumb-item active">Grilles Tarifaire</li>
                         </ol>
                     </div>
+                    @if($role === 'administrator')
                     <div class="col-sm-6">
                         <div class="float-right d-none d-md-block">
                             <button class="btn_round_add btn-primary arrow-none waves-effect waves-light">
@@ -36,6 +37,7 @@
                             </button>
                         </div>
                     </div>
+                    @endif
                 </div> <!-- end row -->
             </div>
             <!-- end page-title -->
@@ -96,6 +98,7 @@
                                             </td>
                                             <td> {{ $c['zone']['name'] }}</td>
                                             <td>
+                                                @if($role === 'administrator')
                                                 <div class="btn-group mt-4 mt-md-0 button-items"
                                                     dir="ltr" role="group"
                                                     aria-label="Basic example">
@@ -110,6 +113,7 @@
                                                     class="btn btn-danger btn-rounded waves-effect deleteModal"><i
                                                                 class="mdi mdi-block-helper"></i></a>
                                                 </div>
+                                                @endif
                                             </td>
                                         </tr>
                                     @endif

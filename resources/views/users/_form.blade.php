@@ -75,7 +75,9 @@
                     </div>
                 </div>
             </div>
-            @if($role === 'administrator' || $role === 'agent')
+            {{-- MODIFIÉ (2026-09-05, demande explicite) : le finance_manager doit
+                 pouvoir bloquer/débloquer les PMA (agent) et PSA (cashier) --}}
+            @if($role === 'administrator' || $role === 'agent' || $role === 'finance_manager')
             <div class="row">
                 <div class="col-md-6">
                     <div class="form-group row">

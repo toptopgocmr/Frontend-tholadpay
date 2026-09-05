@@ -116,16 +116,23 @@ Route::match(array('GET','POST'), 'admin/zones/{id}/modifier', [ 'middleware' =>
 Route::post('admin/zones/supprimer', [ 'middleware' => ['admin'], 'uses' => 'ZoneController@delete', 'as' => 'zone_delete' ]);
 Route::match(array('GET','POST'), 'admin/zones/{id}/detail', [ 'middleware' => ['admin'], 'uses' => 'ZoneController@show', 'as' => 'zone_show' ]);
 
+// MODIFIÉ (2026-09-05, demande explicite) : la LECTURE de la grille tarifaire
+// (tarifications) et des taxes reste ouverte à tous les profils connectés
+// (PMA/PSA doivent pouvoir la consulter), mais ajouter/modifier/supprimer est
+// désormais réservé au super admin ('admin' = middleware Admin::class, rôle
+// "administrator" uniquement) — avant ce correctif, TOUS les profils
+// (y compris caissier/PSA) pouvaient créer/modifier/supprimer les tarifs et
+// les taxes via ces routes (middleware 'all').
 Route::get('admin/tarifications', [ 'middleware' => ['all'], 'uses' => 'TarificationController@index', 'as' => 'tarif_list' ]);
-Route::match(array('GET','POST'), 'admin/tarifications/ajouter', [ 'middleware' => ['all'], 'uses' => 'TarificationController@create', 'as' => 'tarif_add' ]);
-Route::match(array('GET','POST'), 'admin/tarifications/{id}/modifier', [ 'middleware' => ['all'], 'uses' => 'TarificationController@edit', 'as' => 'tarif_edit' ]);
-Route::post('admin/tarifications/supprimer', [ 'middleware' => ['all'], 'uses' => 'TarificationController@delete', 'as' => 'tarif_delete' ]);
+Route::match(array('GET','POST'), 'admin/tarifications/ajouter', [ 'middleware' => ['admin'], 'uses' => 'TarificationController@create', 'as' => 'tarif_add' ]);
+Route::match(array('GET','POST'), 'admin/tarifications/{id}/modifier', [ 'middleware' => ['admin'], 'uses' => 'TarificationController@edit', 'as' => 'tarif_edit' ]);
+Route::post('admin/tarifications/supprimer', [ 'middleware' => ['admin'], 'uses' => 'TarificationController@delete', 'as' => 'tarif_delete' ]);
 Route::match(array('GET','POST'), 'admin/tarifications/{id}/detail', [ 'middleware' => ['all'], 'uses' => 'TarificationController@show', 'as' => 'tarif_show' ]);
 
 Route::get('admin/taxes', [ 'middleware' => ['all'], 'uses' => 'TaxController@index', 'as' => 'tax_list' ]);
-Route::match(array('GET','POST'), 'admin/taxes/ajouter', [ 'middleware' => ['all'], 'uses' => 'TaxController@create', 'as' => 'tax_add' ]);
-Route::match(array('GET','POST'), 'admin/taxes/{id}/modifier', [ 'middleware' => ['all'], 'uses' => 'TaxController@edit', 'as' => 'tax_edit' ]);
-Route::post('admin/taxes/supprimer', [ 'middleware' => ['all'], 'uses' => 'TaxController@delete', 'as' => 'tax_delete' ]);
+Route::match(array('GET','POST'), 'admin/taxes/ajouter', [ 'middleware' => ['admin'], 'uses' => 'TaxController@create', 'as' => 'tax_add' ]);
+Route::match(array('GET','POST'), 'admin/taxes/{id}/modifier', [ 'middleware' => ['admin'], 'uses' => 'TaxController@edit', 'as' => 'tax_edit' ]);
+Route::post('admin/taxes/supprimer', [ 'middleware' => ['admin'], 'uses' => 'TaxController@delete', 'as' => 'tax_delete' ]);
 Route::match(array('GET','POST'), 'admin/taxes/{id}/detail', [ 'middleware' => ['all'], 'uses' => 'TaxController@show', 'as' => 'tax_show' ]);
 
 Route::get('logs', '\Rap2hpoutre\LaravelLogViewer\LogViewerController@index');

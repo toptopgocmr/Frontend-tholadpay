@@ -462,7 +462,12 @@ class UserController extends Controller
                         'last_name' => $request->get('textPrenom')
                         // 'phone_number' => count($p) === 1 ? '242'. $p[0] : '242'. $p[1]
                     ];
-                    if ($role === 'administrator' || $role === 'agent') {
+                    // MODIFIÉ (2026-09-05, demande explicite) : le finance_manager peut
+                    // désormais lui aussi bloquer/débloquer (PMA/PSA) — le backend
+                    // (UserController::authorizeStatusChange) vérifie ensuite précisément
+                    // QUI a le droit d'agir sur QUEL profil, donc pas de risque à
+                    // simplement transmettre le champ ici.
+                    if ($role === 'administrator' || $role === 'agent' || $role === 'finance_manager') {
                         $us['is_active'] = $request->get('textStatus') === '1' ? 1 : 0;
                         $us['status'] = $request->get('textStatus') === '1' ? 1 : 0;
                     }
