@@ -327,6 +327,72 @@ class TransactionController extends Controller
                                 $resSend = json_decode($resSend->getBody()->getContents(), true);
                             }
                         }
+                    } else if ($isBackendError && $isDigitwaceTx && (int) ($res['status'] ?? 0) === 404 && stripos((string) ($res['message'] ?? ''), 'not found') !== false) {
+                        // AJOUT (2026-09-22) : GET /transaction/status/{reference} (doc §XI) renvoie
+                        // un 404 "Transaction not found" quand WACEPAY n'a AUCUNE trace de cette
+                        // référence -- ce qui, pour DigitWace, ne peut arriver que si la création
+                        // (bank/wallet/cash create) n'a en réalité jamais abouti chez WACEPAY (ex:
+                        // incident transaction #267/KL-2026-09-22-001 : bank/create avait échoué avec
+                        // "Ce code partenaire existe deja", mais l'ancien code avait quand même
+                        // enregistré un identifiant local comme 'reference' et marqué la transaction
+                        // "approuved" -- corrigé par ailleurs, voir OutboundController::
+                        // normalizeDigitwaceTransactionResponse). Avant ce correctif, une telle
+                        // transaction restait bloquée indéfiniment en "Pending" et redéclenchait ce
+                        // même 404 à chaque polling automatique (~30s), sans jamais se résoudre
+                        // puisque la référence n'existera JAMAIS chez WACEPAY. On la marque désormais
+                        // directement en échec (remboursement agent + SMS, comme un rejet classique)
+                        // pour sortir du polling automatique (condition etat_transac !== 'failed'
+                        // plus haut dans cette boucle).
+                        $manage = 'Transaction DigitWace introuvable chez WACEPAY (référence "' . $tr['reference'] . '") : la création n\'a en réalité jamais abouti côté partenaire. Détail : ' . ($res['message'] ?? '');
+                        $maTrans = [
+                            'etat_transac' => 'failed',
+                            'date_complete' => @date('Y-m-d'),
+                            'observations' => $manage
+                        ];
+                        $trans = $client->put(config('keys.url_api') . 'transactions/' . $tr['id'], [
+                            'verify' => false,
+                            'headers' => [
+                                'Content-Type' => 'application/json',
+                                'Authorization' => 'Bearer ' . $token
+                            ],
+                            'json' => $maTrans
+                        ]);
+                        $trans = json_decode($trans->getBody()->getContents(), true);
+                        $myAgent = $client->get(config('keys.url_api') . 'agents/' . $tr['agent']['id'], [
+                            'verify' => false,
+                            'headers' => [
+                                'Content-Type' => 'application/json',
+                                'Authorization' => 'Bearer ' . $token
+                            ]
+                        ]);
+                        $myAgent = json_decode($myAgent->getBody()->getContents(), true);
+                        $maAgent = [
+                            'solde' => (floatval($myAgent['solde']) + (floatval($tr['amount']) + floatval($tr['fees'])))
+                        ];
+                        $agen = $client->put(config('keys.url_api') . 'agents/' . $myAgent['id'], [
+                            'verify' => false,
+                            'headers' => [
+                                'Content-Type' => 'application/json',
+                                'Authorization' => 'Bearer ' . $token
+                            ],
+                            'json' => $maAgent
+                        ]);
+                        $agen = json_decode($agen->getBody()->getContents(), true);
+                        $phone_sender =  $tr['user']['phone_number'];
+                        $txtFrom = "Send-Paz";
+                        $rejectedSMS = [
+                            "from" =>  $txtFrom,
+                            "to" =>  $phone_sender,
+                            "text" =>  "Cher(e) client(e), votre transaction Send-Paz N° " . $tr['ranking'] . " vers " . $tr['receiving_country'] . " a été rejetée. Prière de vous rapprocher de Send-Paz pour plus de détails."
+                        ];
+                        $resSend = $client->post(config('keys.url_api') . 'auth/send_sms_to_phone', [
+                            'verify' => false,
+                            'headers' => [
+                                'Content-Type' => 'application/json'
+                            ],
+                            'json' => $rejectedSMS
+                        ]);
+                        $resSend = json_decode($resSend->getBody()->getContents(), true);
                     }
                     // else {
                     //     \Session::flash('error', 'Vérifier votre connexion internet !');
@@ -2051,6 +2117,63 @@ class TransactionController extends Controller
                     ]);
                     $resSend = json_decode($resSend->getBody()->getContents(), true);
                 }
+                return redirect()->route('transaction_list')->with('error', $manage);
+            } else if ($isBackendError && $isDigitwaceTx && (int) ($res['status'] ?? 0) === 404 && stripos((string) ($res['message'] ?? ''), 'not found') !== false) {
+                // AJOUT (2026-09-22) : voir commentaire détaillé dans index() -- même correctif,
+                // pour le bouton "Vérifier le statut" manuel : un 404 "Transaction not found" de
+                // WACEPAY sur une transaction DigitWace signifie que la création n'a en réalité
+                // jamais abouti chez le partenaire -- on marque directement en échec (remboursement
+                // agent + SMS) plutôt que de simplement afficher l'erreur sans rien changer.
+                $manage = 'Transaction DigitWace introuvable chez WACEPAY (référence "' . $transaction['reference'] . '") : la création n\'a en réalité jamais abouti côté partenaire. Détail : ' . ($res['message'] ?? '');
+                $maTrans = [
+                    'etat_transac' => 'failed',
+                    'date_complete' => @date('Y-m-d'),
+                    'observations' => $manage
+                ];
+                $trans = $client->put(config('keys.url_api') . 'transactions/' . $id, [
+                    'verify' => false,
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                        'Authorization' => 'Bearer ' . $token
+                    ],
+                    'json' => $maTrans
+                ]);
+                $trans = json_decode($trans->getBody()->getContents(), true);
+                $myAgent = $client->get(config('keys.url_api') . 'agents/' . $transaction['agent']['id'], [
+                    'verify' => false,
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                        'Authorization' => 'Bearer ' . $token
+                    ]
+                ]);
+                $myAgent = json_decode($myAgent->getBody()->getContents(), true);
+                $maAgent = [
+                    'solde' => (floatval($myAgent['solde']) + (floatval($transaction['amount']) + floatval($transaction['fees'])))
+                ];
+                $agen = $client->put(config('keys.url_api') . 'agents/' . $myAgent['id'], [
+                    'verify' => false,
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                        'Authorization' => 'Bearer ' . $token
+                    ],
+                    'json' => $maAgent
+                ]);
+                $agen = json_decode($agen->getBody()->getContents(), true);
+                $phone_sender =  $transaction['user']['phone_number'];
+                $txtFrom = "Send-Paz";
+                $rejectedSMS = [
+                    "from" =>  $txtFrom,
+                    "to" =>  $phone_sender,
+                    "text" =>  "Cher(e) client(e), votre transaction Send-Paz N° " . $transaction['ranking'] . " vers " . $transaction['receiving_country'] . " a été rejetée. Prière de vous rapprocher de Send-Paz pour plus de détails."
+                ];
+                $resSend = $client->post(config('keys.url_api') . 'auth/send_sms_to_phone', [
+                    'verify' => false,
+                    'headers' => [
+                        'Content-Type' => 'application/json'
+                    ],
+                    'json' => $rejectedSMS
+                ]);
+                $resSend = json_decode($resSend->getBody()->getContents(), true);
                 return redirect()->route('transaction_list')->with('error', $manage);
             } else if ($isBackendError) {
                 return redirect()->route('transaction_list')->with('error', $res['message'] ?? 'Erreur lors de la vérification du statut.');
