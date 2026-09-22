@@ -852,7 +852,20 @@ class TransactionController extends Controller
                         // la transaction sans repasser par ce formulaire.
                         $request->session()->put('partner_' . $id, $partnerChoice);
                         if ($partnerChoice === 'digitwace') {
-                            $request->session()->put('dw_extra_' . $id, [
+                            // FIX (2026-09-22, incident transaction #267, erreur DigitWace "bank_id
+                            // est requis pour DigitWace" reapparue malgre le fix du 2026-08-26) : ce
+                            // session()->put() ECRASAIT tout le tableau dw_extra_{id} avec uniquement
+                            // les champs de CE formulaire (etape 1) -- des qu'un agent revenait sur
+                            // cette etape apres avoir deja renseigne bank_id/origin_fund/reason/
+                            // digitwace_service a l'etape 2 (getquotation(), qui lit puis fusionne
+                            // correctement via session()->get() + put()), ces champs etaient
+                            // silencieusement perdus. Resultat : sendDigitwaceBankTransaction()
+                            // rebloquait avec "bank_id est requis" meme si l'agent l'avait deja
+                            // choisi dans le select de quote.blade.php quelques minutes plus tot. On
+                            // fusionne desormais avec le tableau dw_extra existant au lieu de
+                            // l'ecraser, comme le fait deja getquotation().
+                            $dwExtraExisting = $request->session()->get('dw_extra_' . $id, []);
+                            $request->session()->put('dw_extra_' . $id, array_merge($dwExtraExisting, [
                                 'receiver_id_number' => trim((string) $request->get('receiver_id_number')),
                                 'receiver_id_type' => $request->get('receiver_id_type') ?: 'PP',
                                 'relation' => trim((string) $request->get('relation')),
@@ -870,7 +883,7 @@ class TransactionController extends Controller
                                 'receiver_address' => trim((string) $request->get('receiver_address')),
                                 'receiver_city' => trim((string) $request->get('receiver_city')),
                                 'receiver_email' => trim((string) $request->get('receiver_email')),
-                            ]);
+                            ]));
                         }
                         // AJOUT (2026-08-20) : mémorise le choix d'opérateur + motif/origine
                         // des fonds PawaPay pour l'étape 3 (sendtransaction), qui recharge la
