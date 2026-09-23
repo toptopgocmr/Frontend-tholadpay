@@ -951,6 +951,42 @@ class TransactionController extends Controller
                                 'receiver_email' => trim((string) $request->get('receiver_email')),
                             ]));
                         }
+                        // FIX (2026-09-23, demande explicite : "le beneficiaire n'est pas
+                        // sauvegarde avec toutes ses informations, il manque toujours des
+                        // champs") : les infos beneficiaire saisies/corrigees ici par l'agent
+                        // n'etaient gardees QUE dans la session (dw_extra_{id}, effacee apres
+                        // l'envoi) et jamais enregistrees sur la transaction en base. A chaque
+                        // nouvelle transaction vers le meme beneficiaire (mobile : liste
+                        // "beneficiaires precedents"), ces champs manquaient donc a nouveau.
+                        // On les enregistre maintenant sur la transaction (valeurs non vides
+                        // uniquement, pour ne jamais effacer une donnee existante). Non
+                        // bloquant : un echec ici n'empeche pas la suite de la validation.
+                        if ($partnerChoice === 'digitwace') {
+                            $benefToSave = array_filter([
+                                'receiver_id_number' => trim((string) $request->get('receiver_id_number')),
+                                'receiver_id_type' => trim((string) $request->get('receiver_id_type')),
+                                'receiver_relation' => trim((string) $request->get('relation')),
+                                'receiver_dob' => trim((string) $request->get('receiver_dob')),
+                                'receiver_expire_date' => trim((string) $request->get('receiver_expire_date')),
+                                'receiver_address' => trim((string) $request->get('receiver_address')),
+                                'receiver_city' => trim((string) $request->get('receiver_city')),
+                                'receiver_email' => trim((string) $request->get('receiver_email')),
+                            ], fn($v) => $v !== '');
+                            if (!empty($benefToSave)) {
+                                try {
+                                    $client->put(config('keys.url_api') . 'transactions/' . $id, [
+                                        'verify' => false,
+                                        'headers' => [
+                                            'Content-Type' => 'application/json',
+                                            'Authorization' => 'Bearer ' . $token
+                                        ],
+                                        'json' => $benefToSave
+                                    ]);
+                                } catch (\Exception $e) {
+                                    \Log::warning('[update] enregistrement infos beneficiaire transaction ' . $id . ' echoue : ' . $e->getMessage());
+                                }
+                            }
+                        }
                         // AJOUT (2026-08-20) : mémorise le choix d'opérateur + motif/origine
                         // des fonds PawaPay pour l'étape 3 (sendtransaction), qui recharge la
                         // transaction sans repasser par ce formulaire — même principe que
@@ -1379,6 +1415,36 @@ class TransactionController extends Controller
                 $bankList = [];
             }
         }
+        // AJOUT (2026-09-23, demande explicite : "le code swift n'est pas reconnu
+        // automatiquement pour designer la banque dans la liste DigitWace, il faut le
+        // faire manuellement") : get_digitwace_bank_list expose le BIC de chaque banque
+        // sous 'BankCode' (ex. "FPELFR21" pour Nickel / Financiere des Paiements
+        // Electroniques). On preselectionne donc la banque dont le BankCode correspond
+        // au Swift Code saisi a la creation (outbound.bank.short_code) -- 8 premiers
+        // caracteres, sinon 6 si un seul candidat. L'agent peut toujours corriger.
+        $suggestedBankId = '';
+        $txBic = strtoupper(preg_replace('/\s+/', '', (string) ($transaction['outbound']['bank']['short_code'] ?? '')));
+        if (!empty($bankList) && strlen($txBic) >= 6) {
+            $codeOf = fn($b) => strtoupper(preg_replace('/\s+/', '', (string) ($b['BankCode'] ?? $b['SwiftCode'] ?? $b['BIC'] ?? '')));
+            foreach ($bankList as $b) {
+                $c = $codeOf($b);
+                if (strlen($c) >= 8 && strlen($txBic) >= 8 && substr($c, 0, 8) === substr($txBic, 0, 8)) {
+                    $suggestedBankId = (string) ($b['BankID'] ?? '');
+                    break;
+                }
+            }
+            if ($suggestedBankId === '') {
+                $cands = array_values(array_filter($bankList, fn($b) => strlen($codeOf($b)) >= 6 && substr($codeOf($b), 0, 6) === substr($txBic, 0, 6)));
+                if (count($cands) === 1) {
+                    $suggestedBankId = (string) ($cands[0]['BankID'] ?? '');
+                }
+            }
+        }
+        // Un choix deja fait par l'agent (session dw_extra_{id}) reste prioritaire.
+        $savedDwExtra = session('dw_extra_' . $id, []);
+        if (!empty($savedDwExtra['bank_id'])) {
+            $suggestedBankId = (string) $savedDwExtra['bank_id'];
+        }
         // AJOUT (2026-08-27, plainte "les listes de raisons de transfert et de
         // relation n'ont pas les memes informations que celles sur l'admin") : les
         // <select> "origin"/"reason" de quote.blade.php contenaient jusqu'ici un
@@ -1420,7 +1486,7 @@ class TransactionController extends Controller
                 $dwOriginFunds = [];
             }
         }
-        return view('transactions.quote', compact('currency', 'type', 'token', 'role', 'user', 'menu', 'transaction', 'partner', 'quote', 'partnerChoice', 'bankList', 'dwReasons', 'dwOriginFunds'));
+        return view('transactions.quote', compact('currency', 'type', 'token', 'role', 'user', 'menu', 'transaction', 'partner', 'quote', 'partnerChoice', 'bankList', 'suggestedBankId', 'dwReasons', 'dwOriginFunds'));
     }
 
 

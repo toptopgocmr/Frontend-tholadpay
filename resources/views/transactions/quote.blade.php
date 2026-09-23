@@ -231,9 +231,12 @@
                                                         <select class="form-control" name="bank_id" id="bank_id">
                                                             <option value="">— Sélectionner —</option>
                                                             @foreach ($bankList as $bank)
-                                                                <option value="{{ $bank['BankID'] ?? '' }}">{{ $bank['BankName'] ?? ('Banque #' . ($bank['BankID'] ?? '?')) }}</option>
+                                                                <option value="{{ $bank['BankID'] ?? '' }}" @if ((string) old('bank_id', $suggestedBankId ?? '') !== '' && (string) old('bank_id', $suggestedBankId ?? '') === (string) ($bank['BankID'] ?? '')) selected @endif>{{ $bank['BankName'] ?? ('Banque #' . ($bank['BankID'] ?? '?')) }}@if (!empty($bank['BankCode'])) ({{ $bank['BankCode'] }})@endif</option>
                                                             @endforeach
                                                         </select>
+                                                        @if (!empty($suggestedBankId))
+                                                        <small class="form-text text-success">Banque présélectionnée automatiquement à partir du Swift Code ({{ $ob['bank']['short_code'] ?? '' }}) — vérifiez avant de continuer.</small>
+                                                        @endif
                                                         @else
                                                         <input type="text" class="form-control" name="bank_id" id="bank_id" placeholder="ID banque DigitWace (voir message d'erreur ci-dessus si déjà affiché)">
                                                         <small class="form-text text-muted">La liste des banques n'a pas pu être chargée automatiquement — laissez vide pour laisser DigitWace deviner, ou saisissez l'ID exact indiqué dans un message d'erreur précédent.</small>
