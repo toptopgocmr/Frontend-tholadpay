@@ -59,10 +59,16 @@ class TransactionController extends Controller
      */
     private function extractPeexMessage(array $peexTx): string
     {
-        foreach (['message', 'reason', 'note', 'remarks', 'narration', 'description', 'comment', 'failure_reason'] as $key) {
+        // FIX (2026-09-24, transaction #271) : Peex laisse "message" a null et met le
+        // vrai motif dans "payment_proof" (ex. INSUFFICIENT_FUND_TO_PAY_TX) -- lu aussi,
+        // et traduit en francais pour l'agent.
+        $codes = [
+            'INSUFFICIENT_FUND_TO_PAY_TX' => 'Solde Send-Paz insuffisant chez Peex (compte prefunding a recharger)',
+        ];
+        foreach (['message', 'reason', 'note', 'remarks', 'narration', 'description', 'comment', 'failure_reason', 'payment_proof'] as $key) {
             $val = trim((string) ($peexTx[$key] ?? ''));
-            if ($val !== '') {
-                return $val;
+            if ($val !== '' && stripos($val, '/images/') === false) {
+                return $codes[strtoupper($val)] ?? $val;
             }
         }
         return '';
